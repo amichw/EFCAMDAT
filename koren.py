@@ -6,9 +6,10 @@ from os.path import splitext
 QUOT_ENCODING = "&quot;"
 
 
-def convert_to_m2(xml_path, m2_path=None):
+def convert_to_m2(xml_path, m2_path=None, metadata=False):
     if not m2_path:
         m2_path = f'{splitext(xml_path)[0]}.m2'
+    errors = 0
 
     with open(xml_path, "r") as f_read:
         with open(m2_path, 'w') as f_write:
@@ -17,6 +18,17 @@ def convert_to_m2(xml_path, m2_path=None):
             soup = bs(content, "lxml")
             writings = soup.find_all("writing")
             for writing in writings:
+                if metadata:
+                    id = writing['id']
+                    level = writing['level']
+                    unit = writing['unit']
+                    learner = writing.find('learner')
+                    learner_id = learner['id']
+                    learner_nationality = learner['nationality']
+                    grade = writing.find('grade').contents
+                    date = writing.find('date').contents
+                    topic_id = writing.find('topic')['id']
+                    # print(id, level, unit, learner_id, learner_nationality, grade, topic_id, date)
                 texts = writing.find("text").contents
                 sentences = writing.find_all("sentence")
 
@@ -25,6 +37,10 @@ def convert_to_m2(xml_path, m2_path=None):
                 tokens = sentences[cur_sent_id].find_all("token")
 
                 for text in texts:
+                    # if len(tokens) <= cur_token_id:
+                        # print('external break (text)')
+                        # break
+                        # pass
                     is_correction = isinstance(text, Tag)
 
                     if is_correction:
@@ -37,6 +53,12 @@ def convert_to_m2(xml_path, m2_path=None):
                     else:
                         phrase = text.strip() if isinstance(text, str) else None
                     while phrase:
+                        # make sure it doesn't crash (not sure why we get here)'
+                        if len(tokens) <= cur_token_id:
+                            print("Breaking: token: ", cur_token_id,'of', len(tokens) , '. sentences: ', cur_sent_id, 'out of ', len(sentences), phrase)
+                            print(text, *texts,sep='|||')
+                            errors+=1
+                            break
                         if phrase.startswith(tokens[cur_token_id].text):
                             phrase = phrase[len(tokens[cur_token_id].text):].strip()
                             cur_token_id += 1
@@ -52,9 +74,19 @@ def convert_to_m2(xml_path, m2_path=None):
                             tokens[cur_token_id].string = tokens[cur_token_id].text[len("."):]
 
                         else:
+                            if tokens[cur_token_id].text in phrase  and cur_token_id + 1 >= len(tokens):
+                                print('Breaking: new index', cur_token_id)
+                                cur_token_id+=1
+                                errors+=1
+                                break
+
                             # If tokenization started from the middle of the phrase
                             if tokens[cur_token_id].text in phrase and tokens[cur_token_id + 1].text in phrase:
                                 new_index = re.search(rf'\b({tokens[cur_token_id].text})\b', phrase)
+                                if new_index is None:
+                                    errors+=1
+                                    print('Gonna crash', 'new index', errors)
+                                    break
                                 phrase = phrase[new_index.start():]
 
                             else:
@@ -64,7 +96,8 @@ def convert_to_m2(xml_path, m2_path=None):
                                 break  # Move to the next text
 
                         if cur_token_id >= len(tokens):
-
+                            if metadata:
+                                f_write.write("M|||{}|||{}|||{}|||{}|||{}|||{}|||{}|||{}\n".format(id, level, unit, learner_id, learner_nationality, grade, topic_id, date))
                             original_sentence = " ".join([token.text for token in tokens])
                             f_write.write(f"S {original_sentence}\n")
                             for j in range(len(sent_errors_indices)):
