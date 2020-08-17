@@ -25,8 +25,8 @@ def convert_to_m2(xml_path, m2_path=None, metadata=False):
                     learner = writing.find('learner')
                     learner_id = learner['id']
                     learner_nationality = learner['nationality']
-                    grade = writing.find('grade').contents
-                    date = writing.find('date').contents
+                    grade = writing.find('grade').contents[0]
+                    date = writing.find('date').contents[0]
                     topic_id = writing.find('topic')['id']
                     # print(id, level, unit, learner_id, learner_nationality, grade, topic_id, date)
                 texts = writing.find("text").contents
@@ -114,4 +114,4 @@ def convert_to_m2(xml_path, m2_path=None, metadata=False):
                     if is_correction:
                         sent_correct_symbols.append(text.find("symbol").text)
                         sent_correct_phrases.append(text.find("correct").text.strip())
-                        sent_errors_indices.append((first_token_id, max(first_token_id, cur_token_id)))
+                        sent_errors_indices.append("{} {} ".format(first_token_id, max(first_token_id, cur_token_id)))
