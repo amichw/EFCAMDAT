@@ -5,7 +5,7 @@ import pickle
 import errant
 import pandas as pd
 
-QUOT_ENCODING = "&quot;"
+QUOT_ENCODING = '&quot;'
 
 
 def find_all(s, ch):
@@ -53,12 +53,11 @@ def xml_to_prl(xml_path, out_path=None, metadata=False):
                 if isinstance(text, Tag):
                     is_correction = text.name == 'change'
                     if is_correction:
-                        correction = text.find("correct").text.strip()
-                        original = text.find("selection").text.strip()
-                        orig += ' ' + original
-                        cor += ' ' + correction
+                        orig += ' ' +  text.find("selection").text.strip().replace(QUOT_ENCODING, '\'')
+                        cor += ' ' +  text.find("correct").text.strip().replace(QUOT_ENCODING, '\'')
                 else:
                     text = text.strip()
+                    text = text.replace(QUOT_ENCODING, '\'')
                     indexes = find_all(text, '.')
                     # index = text.find('.')
                     if len(indexes) == 0:
