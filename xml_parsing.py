@@ -73,6 +73,7 @@ def xml_to_prl(xml_path, out_path=None, metadata=False):
             if len(orig) > 0:  # case where text didn't end with '.'
                 f_write.write(f"O {orig} \n")
                 f_write.write(f"C {cor} \n\n")
+    return out_path
 
 
 def prl_pickle(prl_path, out_path=None):
@@ -124,3 +125,22 @@ def prl_pickle(prl_path, out_path=None):
                         print('exception!!!! ========= ')
     pickle.dump(data, open(out_path, 'wb'))
     return out_path
+
+
+def prl_to_corpus(prl_path):
+    out_path_orig = f'{splitext(prl_path)[0]}_orig'
+    out_path_corr = f'{splitext(prl_path)[0]}_corr'
+
+    with open(prl_path, "r") as f_read:
+        with open(out_path_orig, 'w') as f_orig:
+            with open(out_path_corr, 'w') as f_corr:
+                for line in f_read:
+                    if len(line) <= 0:
+                        continue
+                    elif line[0] == 'O':
+                        f_orig.write(line[1:])
+                        f_orig.write('\n')
+                    elif line[0] == 'C':
+                        f_corr.write(line[1:])
+                        f_corr.write('\n')
+
