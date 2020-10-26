@@ -70,15 +70,16 @@ def xml_to_prl(xml_path, out_path=None, metadata=False):
                             f_write.write(f"C {cor} {text[first:second + 1]} \n\n")
                             first = second + 1
                         orig, cor = text[second + 1:], text[second + 1:]  # for text after '.'
-            if len(orig) > 0:  # case where text didn't end with '.'
+            if len(orig.strip()) > 0:  # case where text didn't end with '.'
                 f_write.write(f"O {orig} \n")
                 f_write.write(f"C {cor} \n\n")
     return out_path
 
 
-def prl_pickle(prl_path, out_path=None):
-    if not out_path:
-        out_path = f'{splitext(prl_path)[0]}.pkl'
+def prl_to_pickle_and_m2(prl_path, pkl_path=None):
+    if not pkl_path:
+        pkl_path = f'{splitext(prl_path)[0]}.pkl'
+    m2_path = f'{splitext(prl_path)[0]}.m2'
     data = pd.DataFrame(
         columns=['orig', 'cor_type', 'cor_s', 'id', 'level', 'unit', 'learner_id', 'learner_nationality', 'grade',
                  'topic_id', 'date'])
@@ -91,40 +92,45 @@ def prl_pickle(prl_path, out_path=None):
             total += 1
     print('total lines:', total)
     annotator = errant.load('en')
-    with open(prl_path, 'r') as f:
-        print('Starting to read to DF: ')
-        meta, original, cor = "", "", ""
-        read_orig = False
+    with open(m2_path, 'w') as f_m2:
+        with open(prl_path, 'r') as f:
+            print('Starting to read to DF: ')
+            meta, original, cor = "", "", ""
+            read_orig = False
 
-        for line in f:
-            current_index += 1  # just for displaying count
-            if (current_index) * 100 >= current_per * total:
-                print(f"Finished {current_index - 1} out of {total}. {current_per}%")
-                current_per += 5
+            for line in f:
+                current_index += 1  # just for displaying count
+                if (current_index) * 100 >= current_per * total:
+                    print(f"Finished {current_index - 1} out of {total}. {current_per}%")
+                    current_per += 5
 
-            if len(line) <= 0:
-                continue
-            if line[0] == 'M':
-                meta = line.split('|||')[1:]
-            # elif not read_orig:
-            elif line[0] == 'O':
-                original = line[1:]
-                read_orig = True
-            elif line[0] == 'C':
-                cor = line[1:]
-                read_orig = False
-                orig = annotator.parse(original)
-                cor = annotator.parse(cor)
-                edits = annotator.annotate(orig, cor)
-                for edit in edits:
-                    try:
-                        row = [original, edit.type, edit.c_str, *meta]
-                        data.loc[index] = row
-                        index += 1
-                    except:
-                        print('exception!!!! ========= ')
-    pickle.dump(data, open(out_path, 'wb'))
-    return out_path
+                if len(line) <= 0:
+                    continue
+                if line[0] == 'M':
+                    meta = line.split('|||')[1:]
+                # elif not read_orig:
+                elif line[0] == 'O':
+                    original = line[1:]
+                    read_orig = True
+                elif line[0] == 'C':
+                    cor = line[1:]
+                    read_orig = False
+                    orig = annotator.parse(original)
+                    cor = annotator.parse(cor)
+                    edits = annotator.annotate(orig, cor)
+                    # if len(edits) > 0:
+                    #     f_m2.write(f'\nS {orig} \n')
+                    f_m2.write(f'\nS {orig} \n')
+                    for edit in edits:
+                        try:
+                            row = [original, edit.type, edit.c_str, *meta]
+                            data.loc[index] = row
+                            index += 1
+                            f_m2.write(f'{edit.to_m2()} \n')
+                        except:
+                            print('exception!!!! ========= ')
+    pickle.dump(data, open(pkl_path, 'wb'))
+    return pkl_path, m2_path
 
 
 def prl_to_corpus(prl_path):
@@ -135,12 +141,11 @@ def prl_to_corpus(prl_path):
         with open(out_path_orig, 'w') as f_orig:
             with open(out_path_corr, 'w') as f_corr:
                 for line in f_read:
+                    line = line.strip()
                     if len(line) <= 0:
                         continue
-                    elif line[0] == 'O':
+                    elif line[0] == 'O' and len(line[1:].strip()) > 0:
                         f_orig.write(line[1:])
-                        f_orig.write('\n')
                     elif line[0] == 'C':
                         f_corr.write(line[1:])
-                        f_corr.write('\n')
-
+    return out_path_orig, out_path_corr
