@@ -221,16 +221,20 @@ def get_tokenized(conllu):
                     sent_id = int(sent_id[0:-1])
                 except:
                     pass
-            # add becuase after 10,000 sentences udpipe count restarts
-            elif line == '\n' or (counter == 10000 and line.startswith("# newdoc")):
+            # no newline when '# newdoc'
+            elif line == '\n' or (line.startswith("# newdoc")):
+                # add becuase after 10,000 sentences udpipe count restarts
+                # elif line == '\n' or (counter == 10000 and line.startswith("# newdoc")):
                 # there is #newdoc without a new line, shifting all sentences
                 assert (not res) or sent_id != res[-1][0]
-                res.append((sent_id, tokens))
+                if len(tokens) > 0:
+                    res.append((sent_id, tokens))
                 tokens = []
             elif not line.startswith("#"):
                 tokens.append(line.split("\t")[1])
         # if there is a blank space in the end of the file, remove!
-        res.append((sent_id, tokens))
+        if len(tokens) > 0:
+            res.append((sent_id, tokens))
     return res
 
 def preprocess_word(word):
@@ -315,7 +319,7 @@ def get_alignments(alignments, esl_tokenized, cesl_tokenized, comparison):
     :return: nothing
     """
     assert len(esl_tokenized) == len(cesl_tokenized) == len(comparison), "len 1: " + str(
-        len(esl_tokenized)) + "len2: " + str(len(cesl_tokenized)) + "len3: " + str(len(comparison))
+        len(esl_tokenized)) + "  len2: " + str(len(cesl_tokenized)) + "  len3: " + str(len(comparison))
     for i in range(len(comparison)):
         align_dict = {}
         index = 1
