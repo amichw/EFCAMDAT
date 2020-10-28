@@ -134,7 +134,7 @@ def prl_to_pickle_and_m2(prl_path, pkl_path=None):
                         except:
                             print('exception!!!! ========= ')
     pickle.dump(data, open(pkl_path, 'wb'))
-    return pkl_path, m2_path
+    return pkl_path, m2_path, data
 
 
 def prl_to_corpus(prl_path):
@@ -153,3 +153,15 @@ def prl_to_corpus(prl_path):
                     elif line[0] == 'C':
                         f_corr.write(line[1:])
     return out_path_orig, out_path_corr
+
+
+def get_errors(m2_path):
+    errors = []
+    with open(m2_path, 'r') as m2:
+        for line in m2:
+            line = line.strip()
+            if len(line) <= 0: continue
+            if line[0] == 'A':
+                errors.append(line.split('|||')[1])
+    return errors
+
