@@ -4,7 +4,7 @@ from os.path import splitext
 import pickle
 import errant
 import pandas as pd
-
+from time import time
 QUOT_ENCODING = '&quot;'
 
 
@@ -70,7 +70,8 @@ def xml_to_prl(xml_path, out_path=None, metadata=False):
                             f_write.write(f"C {cor} {text[first:second + 1]} \n\n")
                             first = second + 1
                         orig, cor = text[second + 1:], text[second + 1:]  # for text after '.'
-            if len(orig.strip()) > 0:  # case where text didn't end with '.'
+            if len(orig.strip()) > 0 and len(cor.strip()) > 0 :
+                # case where text didn't end with '.'
                 f_write.write(f"O {orig} \n")
                 f_write.write(f"C {cor} \n\n")
     return out_path
@@ -92,6 +93,7 @@ def prl_to_pickle_and_m2(prl_path, pkl_path=None):
             total += 1
     print('total lines:', total)
     annotator = errant.load('en')
+    start_time, current_time = time(), time()
     with open(m2_path, 'w') as f_m2:
         with open(prl_path, 'r') as f:
             print('Starting to read to DF: ')
@@ -100,8 +102,10 @@ def prl_to_pickle_and_m2(prl_path, pkl_path=None):
 
             for line in f:
                 current_index += 1  # just for displaying count
+                elapsed = time() - start_time
                 if (current_index) * 100 >= current_per * total:
-                    print(f"Finished {current_index - 1} out of {total}. {current_per}%")
+                    print(f"Finished {current_index - 1} out of {total}. {current_per}%.", f'elapsed: {elapsed}',
+                            f' remaining: {(elapsed*100/current_per if current_per else 0) - elapsed}')
                     current_per += 5
 
                 if len(line) <= 0:
@@ -141,8 +145,8 @@ def prl_to_corpus(prl_path):
         with open(out_path_orig, 'w') as f_orig:
             with open(out_path_corr, 'w') as f_corr:
                 for line in f_read:
-                    line = line.strip()
-                    if len(line) <= 0:
+                    # line = line.strip()
+                    if len(line.strip()) <= 0:
                         continue
                     elif line[0] == 'O' and len(line[1:].strip()) > 0:
                         f_orig.write(line[1:])
