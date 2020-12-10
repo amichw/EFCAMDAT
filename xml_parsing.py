@@ -80,10 +80,13 @@ def xml_to_prl(xml_path, out_path=None, metadata=False):
 def prl_to_pickle_and_m2(prl_path, pkl_path=None):
     if not pkl_path:
         pkl_path = f'{splitext(prl_path)[0]}.pkl'
+    temp_pkl = pkl_path + 'temp'
     m2_path = f'{splitext(prl_path)[0]}.m2'
-    data = pd.DataFrame(
-        columns=['orig', 'cor_type', 'cor_s', 'id', 'level', 'unit', 'learner_id', 'learner_nationality', 'grade',
-                 'topic_id', 'date'])
+    columns = ['orig', 'cor_type', 'edit.o_start', 'edit.o_end', 'o_str', 'c_str', 'id', 'level', 'unit', 'learner_id',
+               'learner_nationality', 'grade',
+               'topic_id', 'date']
+    data = pd.DataFrame(columns=columns)
+    pickle.dump(data, open(temp_pkl, 'wb'))
     index = 0
     total = 0
     current_index = 0
@@ -93,7 +96,7 @@ def prl_to_pickle_and_m2(prl_path, pkl_path=None):
             total += 1
     print('total lines:', total)
     annotator = errant.load('en')
-    start_time, current_time = time(), time()
+    start_time, last_time = time(), time()
     with open(m2_path, 'w') as f_m2:
         with open(prl_path, 'r') as f:
             print('Starting to read to DF: ')
@@ -102,11 +105,19 @@ def prl_to_pickle_and_m2(prl_path, pkl_path=None):
 
             for line in f:
                 current_index += 1  # just for displaying count
-                elapsed = time() - start_time
                 if (current_index) * 100 >= current_per * total:
+                    elapsed = int(time() - start_time)
                     print(f"Finished {current_index - 1} out of {total}. {current_per}%.", f'elapsed: {elapsed}',
-                            f' remaining: {(elapsed*100/current_per if current_per else 0) - elapsed}')
+                            f' remaining: {(elapsed*100/current_per if current_per else 0) - elapsed}', f'last time: {int(time() - last_time)}')
                     current_per += 5
+                    last_time = time()
+                    # save and erase current df. make program run faster:
+                    df = pickle.load(open(temp_pkl, 'rb'))
+                    df = pd.concat([df, data])
+                    pickle.dump(df, open(temp_pkl, 'wb'))
+                    data = pd.DataFrame(columns=columns)
+                    df = None
+                    index = 0
 
                 if len(line) <= 0:
                     continue
@@ -127,14 +138,18 @@ def prl_to_pickle_and_m2(prl_path, pkl_path=None):
                     f_m2.write(f'\nS {orig} \n')
                     for edit in edits:
                         try:
-                            row = [original, edit.type, edit.c_str, *meta]
+                            row = [original, edit.type, edit.o_start, edit.o_end, edit.o_str, edit.c_str, *meta]
                             data.loc[index] = row
                             index += 1
                             f_m2.write(f'{edit.to_m2()} \n')
                         except:
                             print('exception!!!! ========= ')
-    pickle.dump(data, open(pkl_path, 'wb'))
-    return pkl_path, m2_path, data
+    df = pickle.load(open(temp_pkl, 'rb'))
+    df = pd.concat([df, data])
+    df.reset_index(drop=True, inplace=True)
+    pickle.dump(df, open(pkl_path, 'wb'))
+    # pickle.dump(data, open(pkl_path, 'wb'))
+    return pkl_path, m2_path, df
 
 
 def prl_to_corpus(prl_path):
