@@ -172,8 +172,14 @@ def add_results_errant(errors, res, sentence, sentence_id):
         elif error[0] == "UNK":
             continue  # figure out what should be done here
     is_edits = [0] * len(original_sentence)
+    if len(original_sentence) != len(corrected_sentence):
+        print(f'original: {original_sentence}')
+        print(f'corr: {corrected_sentence}')
+        print(f' {len(original_sentence) - len(corrected_sentence)} =======  ===========   ===== ==========')
+        print(f' sentence: {sentence} =======  ===========   ===== ==========')
+        print(f' errors: {errors} =======  ===========   ===== ==========')
+        return sentence_id
     for index in range(len(original_sentence)):
-        assert len(original_sentence) == len(corrected_sentence)
         if original_sentence[index] != corrected_sentence[index]:
             is_edits[index] = 1
     res.append((sentence_id, original_sentence, corrected_sentence, is_edits))
@@ -574,6 +580,7 @@ def syntactic_m2(src, corr, m2_path, out_path=None):
                 out_line = m2_line
                 if m2_line.strip().startswith("S"):
                     i += 1
+                    # TODO: add parameter: error indexes. if i+1 == errorindex: loop forward (err flag) till next ''S''
                     assert i <= len(src)
                     src_n, src_g = conll2graph(src[i])
                     src_idxs = sorted([int(key) for key in src_n.keys()])
@@ -648,6 +655,7 @@ def syntactic_m2(src, corr, m2_path, out_path=None):
                 elif m2_line.strip():
                     raise ValueError("Unexpected line, m2 lines should start with A S or be blank")
                 outm2.write(out_line)
+    return out_path
 
 
 def get_confusion_matrix(src, corr, alignments, confusion_dict_pos, confusion_dict_paths):
@@ -824,5 +832,28 @@ def main():
                          confusion_dict_pos, conllu_path.split('/')[-1])
 
 
+def run_gec(conllu_path, conllu_path_corrected, m2_path):
+    esl_tokenized = get_tokenized(conllu_path)
+    cesl_tokenized = get_tokenized(conllu_path_corrected)
+    comparison = get_annotation_from_m2(m2_path)
+    alignments = []  # will be a list of dictionaries
+    get_alignments(alignments, esl_tokenized, cesl_tokenized, comparison)
+    src = parse_conllu(conllu_path)
+    corr = parse_conllu(conllu_path_corrected)
+    assert len(src) == len(corr) == len(alignments), "len src: " + str(len(src)) + " len of corr: " + \
+                                                     str(len(corr)) + " len all: " + str(len(alignments))
+    confusion_dict_paths = {}
+    confusion_dict_pos = {}
+    print('starting new_m2')
+    new_m2 = syntactic_m2(src, corr, m2_path)
+    print('starting confusion matrix.')
+    get_confusion_matrix(src, corr, alignments,
+                         confusion_dict_pos, confusion_dict_paths)
+    extract_matrices(confusion_dict_paths,
+                     confusion_dict_pos, conllu_path)
+    return new_m2
+
+
 if __name__ == '__main__':
-    main()
+    # main()
+    pass
