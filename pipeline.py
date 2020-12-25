@@ -56,14 +56,17 @@ def pipeline(xml_path):
     # UD(orig.connlu , corr.connlu, m2, model)-> new m2 :
     print('now run in terminal: ', f'python ufal_stuff/GEC_UD_divergences_m2.py {connlu_orig_path} {connlu_corr_path} {m2_path}')
     print('running:', f'python ufal_stuff/GEC_UD_divergences_m2.py {connlu_orig_path} {connlu_corr_path} {m2_path} ')
-    new_m2_path = run_gec(connlu_orig_path, connlu_corr_path, m2_path)
+    new_m2_path, invalid_indices = run_gec(connlu_orig_path, connlu_corr_path, m2_path)
     print('now running: add_new_errors() ')
-    #  run add_new_errors():
-    df, pkl = add_new_errors(df, m2_path, new_m2_path, pkl)
+    #  run add_new_error_types():
+    df, pkl = add_new_error_types(df, m2_path, new_m2_path, pkl, invalid_indices)
     return pkl, df, m2_path
 
 
-def add_new_errors(df, m2_path, new_m2_path, pkl):
+def add_new_error_types(df, m2_path, new_m2_path, pkl, invalid_indices=""):
+    # exclude invalid
+    for i in invalid_indices:
+        df = df[df['text_index'] != i]
     # add new m2 error_types to df:
     # pkl = f'{m2_path}.pkl'
     # new_m2_path = splitext(m2_path)

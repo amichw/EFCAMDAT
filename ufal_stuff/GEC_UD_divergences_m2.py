@@ -178,6 +178,8 @@ def add_results_errant(errors, res, sentence, sentence_id):
         print(f' {len(original_sentence) - len(corrected_sentence)} =======  ===========   ===== ==========')
         print(f' sentence: {sentence} =======  ===========   ===== ==========')
         print(f' errors: {errors} =======  ===========   ===== ==========')
+        res.append((sentence_id, original_sentence +corrected_sentence, corrected_sentence +original_sentence, is_edits)) # !!!!!!!!!!!!!!!!!!!!!!!!! JUst so it wont get ' index out of bounds' in next function...
+        sentence_id += 1  # !!!!!!!!!!!!!!!!!!!!!!!!!
         return sentence_id
     for index in range(len(original_sentence)):
         if original_sentence[index] != corrected_sentence[index]:
@@ -326,6 +328,7 @@ def get_alignments(alignments, esl_tokenized, cesl_tokenized, comparison):
     """
     assert len(esl_tokenized) == len(cesl_tokenized) == len(comparison), "len 1: " + str(
         len(esl_tokenized)) + "  len2: " + str(len(cesl_tokenized)) + "  len3: " + str(len(comparison))
+    error_indexes = []
     for i in range(len(comparison)):
         align_dict = {}
         index = 1
@@ -338,127 +341,131 @@ def get_alignments(alignments, esl_tokenized, cesl_tokenized, comparison):
             alignments.append(align_dict)
             continue
         for j in range(len(comparison[i][1])):
-            word = comparison[i][1][j]
-            cword = comparison[i][2][j]
-            w = word[0].split()
-            cw = cword[0].split()
-            if len(w) == 0:
-                if index < len(osentence):
-                    val = []
-                    for k in range(len(cw)):
-                        val.append(str(index + k + shift))
-                    align_dict[str(index)] = val
-                    shift += len(cw)
-                else:
-                    if index + shift - 1 >= 1:
-                        val = align_dict[str(index - 1)]
+            try:
+                word = comparison[i][1][j]
+                cword = comparison[i][2][j]
+                w = word[0].split()
+                cw = cword[0].split()
+                if len(w) == 0:
+                    if index < len(osentence):
+                        val = []
                         for k in range(len(cw)):
-                            val.append(str(index - 1 + k + shift))
-                        align_dict[str(index - 1)] = val
-                    shift += len(cw)
-            elif len(cw) == 0:
-                for k in range(len(w)):
-                    if str(index) in align_dict and k == 0:
-                        val = align_dict[str(index)]
-                        val.append(str(index + shift - 1))
+                            val.append(str(index + k + shift))
                         align_dict[str(index)] = val
+                        shift += len(cw)
                     else:
-                        if (index + shift - 1) < 1:
-                            align_dict[str(index + k)] = [str(index + shift)]
+                        if index + shift - 1 >= 1:
+                            val = align_dict[str(index - 1)]
+                            for k in range(len(cw)):
+                                val.append(str(index - 1 + k + shift))
+                            align_dict[str(index - 1)] = val
+                        shift += len(cw)
+                elif len(cw) == 0:
+                    for k in range(len(w)):
+                        if str(index) in align_dict and k == 0:
+                            val = align_dict[str(index)]
+                            val.append(str(index + shift - 1))
+                            align_dict[str(index)] = val
                         else:
-                            align_dict[str(index + k)
-                                       ] = [str(index + shift - 1)]
-                shift -= len(w)
-                index += len(w)
-            elif (len(w) == 1) and (len(cw) == 1):
-                if str(index) in align_dict:
-                    val = align_dict[str(index)]
-                    val.append(str(index + shift))
-                    align_dict[str(index)] = val
-                else:
-                    align_dict[str(index)] = [str(index + shift)]
-                index += 1
-            elif (len(w) >= 2) and len(cw) == 1:
-                for k in range(len(w)):
-                    if str(index) in align_dict and k == 0:
+                            if (index + shift - 1) < 1:
+                                align_dict[str(index + k)] = [str(index + shift)]
+                            else:
+                                align_dict[str(index + k)
+                                           ] = [str(index + shift - 1)]
+                    shift -= len(w)
+                    index += len(w)
+                elif (len(w) == 1) and (len(cw) == 1):
+                    if str(index) in align_dict:
                         val = align_dict[str(index)]
                         val.append(str(index + shift))
                         align_dict[str(index)] = val
                     else:
-                        align_dict[str(index + k)] = [str(index + shift)]
-                shift -= (len(w) - 1)
-                index += len(w)
-            elif (len(cw) >= 2) and len(w) == 1:
-                val = []
-                for k in range(len(cw)):
-                    val.append(str(index + shift + k))
-                if str(index) in align_dict:
-                    val.extend(align_dict[str(index)])
-                align_dict[str(index)] = val
-                index += 1
-                shift += len(cw) - 1
-            # word order
-            elif len(cw) == 2 and len(w) == 2 and cw[0].lower() == w[1].lower():
-                if str(index) in align_dict:
-                    val = align_dict[str(index)]
-                    val.append(str(index + 1 + shift))
-                    align_dict[str(index)] = val
-                else:
-                    align_dict[str(index)] = [str(index + 1 + shift)]
-                align_dict[str(index + 1)] = [str(index + shift)]
-                index += 2
-            elif len(cw) >= 2 and len(w) >= 2:
-                if str(index) in align_dict:
-                    val = align_dict[str(index)]
-                else:
+                        align_dict[str(index)] = [str(index + shift)]
+                    index += 1
+                elif (len(w) >= 2) and len(cw) == 1:
+                    for k in range(len(w)):
+                        if str(index) in align_dict and k == 0:
+                            val = align_dict[str(index)]
+                            val.append(str(index + shift))
+                            align_dict[str(index)] = val
+                        else:
+                            align_dict[str(index + k)] = [str(index + shift)]
+                    shift -= (len(w) - 1)
+                    index += len(w)
+                elif (len(cw) >= 2) and len(w) == 1:
                     val = []
-                if len(cw) == len(w):
-                    for k in range(len(w)):
-                        if k == 0:
-                            val.append(str(index + shift))
-                            align_dict[str(index)] = val
-                        else:
-                            align_dict[str(index + k)
-                                       ] = [str(index + shift + k)]
-                elif len(cw) < len(w):
                     for k in range(len(cw)):
-                        if k == 0:
-                            val.append(str(index + shift))
-                            align_dict[str(index)] = val
-                        else:
-                            align_dict[str(index + k)
-                                       ] = [str(index + shift + k)]
-                    for l in range(len(w) - len(cw)):
-                        align_dict[str(index + len(cw) + l)
-                                   ] = [str(index + shift + len(cw) - 1)]
-                    shift -= (len(w) - len(cw))
-                else:
-                    for k in range(len(w)):
-                        if k == 0:
-                            val.append(str(index + shift))
-                            align_dict[str(index)] = val
-                        else:
-                            align_dict[str(index + k)
-                                       ] = [str(index + shift + k)]
-                    kval = align_dict[str(index + len(w) - 1)]
-                    for l in range(len(cw) - len(w)):
-                        kval.append(str(index + shift + len(w) + l))
-                    align_dict[str(index + len(w) - 1)] = kval
-                    shift += (len(cw) - len(w))
-                index += len(w)
-
+                        val.append(str(index + shift + k))
+                    if str(index) in align_dict:
+                        val.extend(align_dict[str(index)])
+                    align_dict[str(index)] = val
+                    index += 1
+                    shift += len(cw) - 1
+                # word order
+                elif len(cw) == 2 and len(w) == 2 and cw[0].lower() == w[1].lower():
+                    if str(index) in align_dict:
+                        val = align_dict[str(index)]
+                        val.append(str(index + 1 + shift))
+                        align_dict[str(index)] = val
+                    else:
+                        align_dict[str(index)] = [str(index + 1 + shift)]
+                    align_dict[str(index + 1)] = [str(index + shift)]
+                    index += 2
+                elif len(cw) >= 2 and len(w) >= 2:
+                    if str(index) in align_dict:
+                        val = align_dict[str(index)]
+                    else:
+                        val = []
+                    if len(cw) == len(w):
+                        for k in range(len(w)):
+                            if k == 0:
+                                val.append(str(index + shift))
+                                align_dict[str(index)] = val
+                            else:
+                                align_dict[str(index + k)
+                                           ] = [str(index + shift + k)]
+                    elif len(cw) < len(w):
+                        for k in range(len(cw)):
+                            if k == 0:
+                                val.append(str(index + shift))
+                                align_dict[str(index)] = val
+                            else:
+                                align_dict[str(index + k)
+                                           ] = [str(index + shift + k)]
+                        for l in range(len(w) - len(cw)):
+                            align_dict[str(index + len(cw) + l)
+                                       ] = [str(index + shift + len(cw) - 1)]
+                        shift -= (len(w) - len(cw))
+                    else:
+                        for k in range(len(w)):
+                            if k == 0:
+                                val.append(str(index + shift))
+                                align_dict[str(index)] = val
+                            else:
+                                align_dict[str(index + k)
+                                           ] = [str(index + shift + k)]
+                        kval = align_dict[str(index + len(w) - 1)]
+                        for l in range(len(cw) - len(w)):
+                            kval.append(str(index + shift + len(w) + l))
+                        align_dict[str(index + len(w) - 1)] = kval
+                        shift += (len(cw) - len(w))
+                    index += len(w)
+            except:
+                error_indexes.append(i)
         alignments.append(align_dict)
         # check that all indexes are in the range
         for key, val in align_dict.items():
-            assert (int(key)) <= len(osentence), str(i) + " " + \
-                str(csentence) + " " + str(key) + " " + str(val)
-            assert (int(key)) > 0, str(i) + " " + \
-                str(csentence) + " " + str(key) + " " + str(val)
+            if (int(key)) > len(osentence) or (int(key)) <= 0:
+                print ("NOT aligned: "+str(i) + " " + str(csentence) + " " + str(key) + " " + str(val))
+                error_indexes.append(i)
+                # return error_indexes
+                break # so not to add index again
             for j in val:
-                assert (int(j)) <= len(csentence), str(i) + \
-                    str(csentence) + str(key) + str(val)
-                assert (int(j)) > 0, str(i) + " " + str(csentence) + \
-                    " " + str(key) + " " + str(val)
+                if (int(j)) > len(csentence) or (int(j)) <= 0:
+                    print(str(i) + str(csentence) + str(key) + str(val))
+                    error_indexes.append(i)
+                    break
+    return error_indexes
 
 
 def conll2graph(record):
@@ -559,7 +566,7 @@ def cut_tokenized_by_text(text, tokens):
     return 0
 
 
-def syntactic_m2(src, corr, m2_path, out_path=None):
+def syntactic_m2(src, corr, m2_path, out_path=None, error_indexes=[]):
     """
     Converts an m2 file and parsed source and correction conllus and m2 to a syntax based (p.o.s.) m2 file
     :param src: parsed conllu of the source (see parse_conllu for expected output)
@@ -573,6 +580,7 @@ def syntactic_m2(src, corr, m2_path, out_path=None):
     if not out_path:
         out_path = os.path.splitext(m2_path)
         out_path = "".join([out_path[0], ".stx", out_path[1]])
+    error = False
     with open(out_path, "w") as outm2:
         with open(m2_path) as m2:
             i = -1
@@ -581,6 +589,11 @@ def syntactic_m2(src, corr, m2_path, out_path=None):
                 if m2_line.strip().startswith("S"):
                     i += 1
                     # TODO: add parameter: error indexes. if i+1 == errorindex: loop forward (err flag) till next ''S''
+                    error = False
+                    if i in error_indexes:
+                        error = True
+                        print(f"m2, skipping {i}")
+                        continue
                     assert i <= len(src)
                     src_n, src_g = conll2graph(src[i])
                     src_idxs = sorted([int(key) for key in src_n.keys()])
@@ -592,13 +605,15 @@ def syntactic_m2(src, corr, m2_path, out_path=None):
                     last_source_end = 0
                     src_used_tok = 0
                     corr_used_tok = 0
+                elif error:
+                    continue
                 elif m2_line.strip().startswith("A") and "noop" not in m2_line:
                     # Remember the case where error only changes spaces
                     error_type, (start_index, end_index), corr_m2_tokens = get_error_type_general(
                         m2_line)
 
                     if "".join(source_m2_tokens[start_index: end_index]).strip() == "".join(corr_m2_tokens).strip() != "":
-                        print("Correction changes only non-punctuation and non-alpha characters", "".join(source_m2_tokens[start_index: end_index]), "->", "".join(corr_m2_tokens), "In sentence:", " ".join(source_m2_tokens))
+                        print(i, ":  Correction changes only non-punctuation and non-alpha characters", "".join(source_m2_tokens[start_index: end_index]), "->", "".join(corr_m2_tokens), "In sentence:", " ".join(source_m2_tokens))
                     corr_m2_tokens = corr_m2_tokens.strip().split()
                     # calculate start_index for source
                     src_start_tok = cut_tokenized_by_text(source_m2_tokens[last_source_end:start_index], src_tokens[src_used_tok:]) + src_used_tok
@@ -832,26 +847,36 @@ def main():
                          confusion_dict_pos, conllu_path.split('/')[-1])
 
 
-def run_gec(conllu_path, conllu_path_corrected, m2_path):
+def run_gec(conllu_path, conllu_path_corrected, m2_path, matrices=False):
     esl_tokenized = get_tokenized(conllu_path)
     cesl_tokenized = get_tokenized(conllu_path_corrected)
     comparison = get_annotation_from_m2(m2_path)
     alignments = []  # will be a list of dictionaries
-    get_alignments(alignments, esl_tokenized, cesl_tokenized, comparison)
+    invalid_indices = get_alignments(alignments, esl_tokenized, cesl_tokenized, comparison)
+    invalid_indices = list(set(invalid_indices))
+    invalid_indices.sort()
+    print('error indices: ', invalid_indices)
     src = parse_conllu(conllu_path)
     corr = parse_conllu(conllu_path_corrected)
-    assert len(src) == len(corr) == len(alignments), "len src: " + str(len(src)) + " len of corr: " + \
-                                                     str(len(corr)) + " len all: " + str(len(alignments))
+    assert len(src) == len(corr) == len(alignments), "len src: " + str(len(src)) + " len of corr: " + str(len(corr)) + " len all: " + str(len(alignments))
     confusion_dict_paths = {}
     confusion_dict_pos = {}
     print('starting new_m2')
-    new_m2 = syntactic_m2(src, corr, m2_path)
-    print('starting confusion matrix.')
-    get_confusion_matrix(src, corr, alignments,
-                         confusion_dict_pos, confusion_dict_paths)
-    extract_matrices(confusion_dict_paths,
-                     confusion_dict_pos, conllu_path)
-    return new_m2
+    new_m2_path = syntactic_m2(src, corr, m2_path, None, invalid_indices)
+    remove_invalid(invalid_indices, src, corr, alignments)
+    if matrices:
+        print('starting confusion matrix.')
+        get_confusion_matrix(src, corr, alignments,
+                             confusion_dict_pos, confusion_dict_paths)
+        print('starting extracting matrices .')
+        extract_matrices(confusion_dict_paths, confusion_dict_pos, conllu_path)
+    return new_m2_path, invalid_indices
+
+
+def remove_invalid(error_indexes, *arrays):
+    for i in error_indexes[::-1]:
+        for arr in arrays:
+            del(arr[i])
 
 
 if __name__ == '__main__':

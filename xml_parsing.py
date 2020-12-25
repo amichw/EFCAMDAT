@@ -77,12 +77,12 @@ def xml_to_prl(xml_path, out_path=None, metadata=False):
     return out_path
 
 
-def prl_to_pickle_and_m2(prl_path, pkl_path=None):
+def prl_to_pickle_and_m2(prl_path, pkl_path=None, error_indices=None):
     if not pkl_path:
         pkl_path = f'{splitext(prl_path)[0]}.pkl'
     temp_pkl = pkl_path + 'temp'
     m2_path = f'{splitext(prl_path)[0]}.m2'
-    columns = ['orig', 'cor_type', 'edit.o_start', 'edit.o_end', 'o_str', 'c_str', 'id', 'level', 'unit', 'learner_id',
+    columns = ['text_index', 'orig', 'cor_type', 'edit.o_start', 'edit.o_end', 'o_str', 'c_str', 'id', 'level', 'unit', 'learner_id',
                'learner_nationality', 'grade',
                'topic_id', 'date']
     data = pd.DataFrame(columns=columns)
@@ -91,6 +91,7 @@ def prl_to_pickle_and_m2(prl_path, pkl_path=None):
     total = 0
     current_index = 0
     current_per = 0
+    my_index = -1
     with open(prl_path) as f:
         for _ in f:
             total += 1
@@ -127,6 +128,7 @@ def prl_to_pickle_and_m2(prl_path, pkl_path=None):
                 elif line[0] == 'O':
                     original = line[1:]
                     read_orig = True
+                    my_index += 1
                 elif line[0] == 'C':
                     cor = line[1:]
                     read_orig = False
@@ -138,7 +140,7 @@ def prl_to_pickle_and_m2(prl_path, pkl_path=None):
                     f_m2.write(f'\nS {orig} \n')
                     for edit in edits:
                         try:
-                            row = [original, edit.type, edit.o_start, edit.o_end, edit.o_str, edit.c_str, *meta]
+                            row = [my_index, original, edit.type, edit.o_start, edit.o_end, edit.o_str, edit.c_str, *meta]
                             data.loc[index] = row
                             index += 1
                             f_m2.write(f'{edit.to_m2()} \n')
