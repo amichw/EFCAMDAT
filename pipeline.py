@@ -2,6 +2,7 @@ import pandas as pd
 from os.path import splitext, exists, join
 from os import mkdir
 import pickle
+from sys import argv
 from xml_parsing import xml_to_prl, prl_to_pickle_and_m2, prl_to_corpus, get_errors
 from ufal_stuff.udpipe import udpipe
 from ufal_stuff.GEC_UD_divergences_m2 import run_gec
@@ -78,6 +79,16 @@ def add_new_error_types(df, m2_path, new_m2_path, pkl, invalid_indices=""):
 
 
 if __name__ == '__main__':
+    if (len(argv) != 2):
+        print("Usage: <xml file>")
+    else:
+        xml_path = argv[1]
+        pkl, df, m2 = pipeline(xml_path)
+        df = pickle.load(open(pkl, 'rb'))
+        df = df.drop(columns=['orig'])
+        print(df.head())
+        exit(42)
+
     XML_FILE_PATH = "short_xml.xml"
     pkl = pipeline('short_xml.xml')
     pkl = pickle.load(open(pkl, 'rb'))
