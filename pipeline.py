@@ -61,12 +61,14 @@ def pipeline(xml_path):
     connlu_orig_path = f'{orig}.connlu'
     connlu_corr_path = f'{corr}.connlu'
     print_to_log('creating connlu files:=============')
-    res = udpipe(orig, model, connlu_orig_path, 256, False)
-    res = udpipe(corr, model, connlu_corr_path, 256, False)
+    res = udpipe(orig, model, connlu_orig_path, 8192, False)
+    res = udpipe(corr, model, connlu_corr_path, 8192, False)
     # UD(orig.connlu , corr.connlu, m2, model)-> new m2 :
     print_to_log('now run in terminal: ', f'python ufal_stuff/GEC_UD_divergences_m2.py {connlu_orig_path} {connlu_corr_path} {m2_path}')
     print_to_log('running:', f'python ufal_stuff/GEC_UD_divergences_m2.py {connlu_orig_path} {connlu_corr_path} {m2_path} ')
     new_m2_path, invalid_indices = run_gec(connlu_orig_path, connlu_corr_path, m2_path)
+    print_to_log('# invalid texts : ', len(invalid_indices))
+    print_to_log('error indices: ', invalid_indices)
     print_to_log('now running: add_new_errors() ')
     #  run add_new_error_types():
     df, pkl = add_new_error_types(df, m2_path, new_m2_path, pkl, invalid_indices)

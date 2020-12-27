@@ -118,8 +118,13 @@ def prl_to_pickle_and_m2(prl_path, pkl_path=None, error_indices=None):
                 current_index += 1  # just for displaying count
                 if (current_index) * 100 >= current_per * total:
                     elapsed = int(time() - start_time)
-                    print_to_log(f"Finished {current_index - 1} out of {total}. {current_per}%.", f'elapsed: {elapsed}'+
-                            f' remaining: {(elapsed*100/current_per if current_per else 0) - elapsed}'+ f'last time: {int(time() - last_time)}')
+                    remaining = (elapsed*100//current_per if current_per else 0) - elapsed
+                    d = remaining // (24 * 3600)
+                    h = (remaining - d) // 3600
+                    m = (remaining - h) // 60
+                    s = (remaining - h - h)
+                    print_to_log(f"Finished {current_index - 1} out of {total}. {current_per}%." + f' elapsed: {elapsed}'+
+                            f' remaining: {remaining} ({d}d {h}:{m}:{s} )'+ f' last time: {int(time() - last_time)}')
                     current_per += 5
                     last_time = time()
                     # save and erase current df. make program run faster:
