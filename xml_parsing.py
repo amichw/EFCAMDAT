@@ -5,7 +5,17 @@ import pickle
 import errant
 import pandas as pd
 from time import time
+import datetime
 QUOT_ENCODING = '&quot;'
+
+
+def print_to_log(*text):
+    with open('pipeline_log', 'a') as f:
+        for t in text:
+            f.write("".join(str(datetime.datetime.now()).split('.')[:-1])+' - ')
+            f.write(str(t))
+            f.write('\n')
+    print(text)
 
 
 def find_all(s, ch):
@@ -13,7 +23,7 @@ def find_all(s, ch):
 
 
 def xml_to_prl(xml_path, out_path=None, metadata=False):
-    print('Parsing XML:')
+    print_to_log('Parsing XML:')
     if not out_path:
         out_path = f'{splitext(xml_path)[0]}.prl'
 
@@ -30,7 +40,7 @@ def xml_to_prl(xml_path, out_path=None, metadata=False):
         for writing in writings:
             current_index += 1
             if (current_index / total) * 100 > current_per:
-                print(f"Finished {current_index - 1} out of {total}. {current_per}%")
+                print_to_log(f"Finished {current_index - 1} out of {total}. {current_per}%")
                 current_per += 5
             if metadata:
                 id = writing['id']
@@ -95,12 +105,12 @@ def prl_to_pickle_and_m2(prl_path, pkl_path=None, error_indices=None):
     with open(prl_path) as f:
         for _ in f:
             total += 1
-    print('total lines:', total)
+    print_to_log('total lines:', total)
     annotator = errant.load('en')
     start_time, last_time = time(), time()
     with open(m2_path, 'w') as f_m2:
         with open(prl_path, 'r') as f:
-            print('Starting to read to DF: ')
+            print_to_log('Starting to read to DF: ')
             meta, original, cor = "", "", ""
             read_orig = False
 
@@ -108,8 +118,8 @@ def prl_to_pickle_and_m2(prl_path, pkl_path=None, error_indices=None):
                 current_index += 1  # just for displaying count
                 if (current_index) * 100 >= current_per * total:
                     elapsed = int(time() - start_time)
-                    print(f"Finished {current_index - 1} out of {total}. {current_per}%.", f'elapsed: {elapsed}',
-                            f' remaining: {(elapsed*100/current_per if current_per else 0) - elapsed}', f'last time: {int(time() - last_time)}')
+                    print_to_log(f"Finished {current_index - 1} out of {total}. {current_per}%.", f'elapsed: {elapsed}'+
+                            f' remaining: {(elapsed*100/current_per if current_per else 0) - elapsed}'+ f'last time: {int(time() - last_time)}')
                     current_per += 5
                     last_time = time()
                     # save and erase current df. make program run faster:
@@ -145,7 +155,7 @@ def prl_to_pickle_and_m2(prl_path, pkl_path=None, error_indices=None):
                             index += 1
                             f_m2.write(f'{edit.to_m2()} \n')
                         except:
-                            print('exception!!!! ========= ')
+                            print_to_log('exception!!!! ========= ')
     df = pickle.load(open(temp_pkl, 'rb'))
     df = pd.concat([df, data])
     df.reset_index(drop=True, inplace=True)

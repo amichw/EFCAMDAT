@@ -6,9 +6,18 @@ from sys import argv
 from xml_parsing import xml_to_prl, prl_to_pickle_and_m2, prl_to_corpus, get_errors
 from ufal_stuff.udpipe import udpipe
 from ufal_stuff.GEC_UD_divergences_m2 import run_gec
+import datetime
+# from ufal_stuff.preprocessing import create_corrected_sentences
+# from ufal_stuff.preprocessing import preprocess_file
 
 
-
+def print_to_log(*text):
+    with open('pipeline_log', 'a') as f:
+        for t in text:
+            f.write("".join(str(datetime.datetime.now()).split('.')[:-1])+' - ')
+            f.write(str(t))
+            f.write('\n')
+    print(text)
 
 def pipeline(xml_path):
     """
@@ -51,14 +60,14 @@ def pipeline(xml_path):
     # udpipe: orig ->orig.connlu , corr.connlu
     connlu_orig_path = f'{orig}.connlu'
     connlu_corr_path = f'{corr}.connlu'
-    print('creating connlu files:=============')
+    print_to_log('creating connlu files:=============')
     res = udpipe(orig, model, connlu_orig_path, 256, False)
     res = udpipe(corr, model, connlu_corr_path, 256, False)
     # UD(orig.connlu , corr.connlu, m2, model)-> new m2 :
-    print('now run in terminal: ', f'python ufal_stuff/GEC_UD_divergences_m2.py {connlu_orig_path} {connlu_corr_path} {m2_path}')
-    print('running:', f'python ufal_stuff/GEC_UD_divergences_m2.py {connlu_orig_path} {connlu_corr_path} {m2_path} ')
+    print_to_log('now run in terminal: ', f'python ufal_stuff/GEC_UD_divergences_m2.py {connlu_orig_path} {connlu_corr_path} {m2_path}')
+    print_to_log('running:', f'python ufal_stuff/GEC_UD_divergences_m2.py {connlu_orig_path} {connlu_corr_path} {m2_path} ')
     new_m2_path, invalid_indices = run_gec(connlu_orig_path, connlu_corr_path, m2_path)
-    print('now running: add_new_errors() ')
+    print_to_log('now running: add_new_errors() ')
     #  run add_new_error_types():
     df, pkl = add_new_error_types(df, m2_path, new_m2_path, pkl, invalid_indices)
     return pkl, df, m2_path
@@ -80,14 +89,14 @@ def add_new_error_types(df, m2_path, new_m2_path, pkl, invalid_indices=""):
 
 if __name__ == '__main__':
     if (len(argv) != 2):
-        print("Usage: <xml file>")
+        print_to_log("Usage: <xml file>")
     else:
         xml_path = argv[1]
         pkl, df, m2 = pipeline(xml_path)
         df = pickle.load(open(pkl, 'rb'))
         df = df.drop(columns=['orig'])
-        print(df.head())
-        exit(42)
+        print_to_log(df.head())
+    exit(42)
 
     XML_FILE_PATH = "short_xml.xml"
     pkl = pipeline('short_xml.xml')
