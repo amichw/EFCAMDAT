@@ -1,20 +1,13 @@
 # -*- coding: utf-8 -*-
 from six import string_types
-import argparse
 from time import time
-import numpy as np
-# from ud_labels import LABEL_TO_ID, ID_TO_LABEL
 from collections import namedtuple
-# from utils import DataUtil, AttrDict
 from ufal.udpipe import Model, Pipeline, ProcessingError
 from xml_parsing import print_to_log
-# import yaml
 import sys
 import codecs
 import locale
-import gzip
 import os
-import datetime
 
 IN = 0
 OUT = 1
@@ -24,14 +17,6 @@ models = {}
 CompactConlluWord = namedtuple(
     'CompactConlluWordO', ['index', 'head', 'label'])
 
-#
-# def print_to_log(*text):
-#     with open('pipeline_log', 'a') as f:
-#         for t in text:
-#             f.write("".join(str(datetime.datetime.now()).split('.')[:-1])+' - ')
-#             f.write(str(t))
-#             f.write('\n')
-#     print(text)
 
 def load_model(model_name):
     if not model_name in models:

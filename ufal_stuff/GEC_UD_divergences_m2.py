@@ -1,12 +1,10 @@
 import os
 import re
-import sys
 from collections import Counter
 from html import unescape
 from itertools import combinations as combs
 from queue import Queue
 from string import punctuation
-
 import numpy as np
 import pandas as pd
 import six
@@ -536,16 +534,6 @@ def get_node_depth(node, graph):
             visited.add(neighbour)
     raise IndexError("Target node unreachable")
 
-def regularize_word(word):
-    """changes structure of the word to the same form (e.g. lowercase)"""
-
-    # remove non-alphanumeric
-    word = unescape(word)
-    word = word.lower()
-    pattern = re.compile(r"[^\w" + punctuation + "]+")
-    word = pattern.sub("", word)
-    return word
-
 
 def cut_tokenized_by_text(text, tokens):
     if not text:
@@ -816,37 +804,6 @@ def parse_conllu(conllu_filepath):
     return parsed
 
 
-def main():
-    """
-    This is the main function of the program. Takes two conllu files (the original and corrected)
-    and m2 file, gets edits and alignments, and creates
-    confusion matrixes (if correction involved same or different POS)
-    :return: nothing
-    """
-    if (len(sys.argv) != 4):
-        print("Usage: <conllu file> <conllu file corrected> <m2 file>")
-    else:
-        conllu_path = sys.argv[1]
-        conllu_path_corrected = sys.argv[2]
-        m2_path = sys.argv[3]
-        esl_tokenized = get_tokenized(conllu_path)
-        cesl_tokenized = get_tokenized(conllu_path_corrected)
-        comparison = get_annotation_from_m2(m2_path)
-        alignments = []  # will be a list of dictionaries
-        get_alignments(alignments, esl_tokenized, cesl_tokenized, comparison)
-        src = parse_conllu(conllu_path)
-        corr = parse_conllu(conllu_path_corrected)
-        assert len(src) == len(corr) == len(alignments), "len src: " + str(len(src)) + " len of corr: " + \
-            str(len(corr)) + " len all: " + str(len(alignments))
-        confusion_dict_paths = {}
-        confusion_dict_pos = {}
-        syntactic_m2(src, corr, m2_path)
-        get_confusion_matrix(src, corr, alignments,
-                             confusion_dict_pos, confusion_dict_paths)
-        extract_matrices(confusion_dict_paths,
-                         confusion_dict_pos, conllu_path.split('/')[-1])
-
-
 def run_gec(conllu_path, conllu_path_corrected, m2_path, matrices=False):
     esl_tokenized = get_tokenized(conllu_path)
     cesl_tokenized = get_tokenized(conllu_path_corrected)
@@ -877,8 +834,3 @@ def remove_invalid(error_indexes, *arrays):
     for i in error_indexes[::-1]:
         for arr in arrays:
             del(arr[i])
-
-
-if __name__ == '__main__':
-    # main()
-    pass

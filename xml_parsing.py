@@ -57,7 +57,6 @@ def xml_to_prl(xml_path, out_path=None, metadata=False):
                 grade = writing.find('grade').contents[0]
                 date = writing.find('date').contents[0]
                 topic_id = writing.find('topic')['id']
-                # print(id, level, unit, learner_id, learner_nationality, grade, topic_id, date)
                 f_write.write("M|||{}|||{}|||{}|||{}|||{}|||{}|||{}|||{}\n".format(id, level, unit, learner_id,
                                                                                    learner_nationality, grade,
                                                                                    topic_id, date))
@@ -117,13 +116,10 @@ def prl_to_pickle_and_m2(prl_path, pkl_path=None, error_indices=None):
         with open(prl_path, 'r') as f:
             print_to_log('Starting to read to DF: ')
             meta, original, cor = "", "", ""
-            read_orig = False
-
             for line in f:
                 current_index += 1  # just for displaying count
                 if (current_index) * 100 >= current_per * total:
                     elapsed = int(time() - start_time)
-                    remaining = (elapsed*100//current_per if current_per else 0) - elapsed
                     remaining = ((100 -current_per)//5 )* int(time() - last_time)
                     d = remaining // (24 * 3600)
                     h = (remaining  % (24 * 3600)) // 3600
@@ -145,19 +141,14 @@ def prl_to_pickle_and_m2(prl_path, pkl_path=None, error_indices=None):
                     continue
                 if line[0] == 'M':
                     meta = line.split('|||')[1:]
-                # elif not read_orig:
                 elif line[0] == 'O':
                     original = line[1:]
-                    read_orig = True
                     my_index += 1
                 elif line[0] == 'C':
                     cor = line[1:]
-                    read_orig = False
                     orig = annotator.parse(original)
                     cor = annotator.parse(cor)
                     edits = annotator.annotate(orig, cor)
-                    # if len(edits) > 0:
-                    #     f_m2.write(f'\nS {orig} \n')
                     f_m2.write(f'\nS {orig} \n')
                     for edit in edits:
                         try:
@@ -171,7 +162,6 @@ def prl_to_pickle_and_m2(prl_path, pkl_path=None, error_indices=None):
     df = pd.concat([df, data])
     df.reset_index(drop=True, inplace=True)
     pickle.dump(df, open(pkl_path, 'wb'))
-    # pickle.dump(data, open(pkl_path, 'wb'))
     return pkl_path, m2_path, df
 
 
