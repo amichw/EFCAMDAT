@@ -7,6 +7,7 @@ import numpy as np
 from collections import namedtuple
 # from utils import DataUtil, AttrDict
 from ufal.udpipe import Model, Pipeline, ProcessingError
+from xml_parsing import print_to_log
 # import yaml
 import sys
 import codecs
@@ -23,14 +24,14 @@ models = {}
 CompactConlluWord = namedtuple(
     'CompactConlluWordO', ['index', 'head', 'label'])
 
-
-def print_to_log(*text):
-    with open('pipeline_log', 'a') as f:
-        for t in text:
-            f.write("".join(str(datetime.datetime.now()).split('.')[:-1])+' - ')
-            f.write(str(t))
-            f.write('\n')
-    print(text)
+#
+# def print_to_log(*text):
+#     with open('pipeline_log', 'a') as f:
+#         for t in text:
+#             f.write("".join(str(datetime.datetime.now()).split('.')[:-1])+' - ')
+#             f.write(str(t))
+#             f.write('\n')
+#     print(text)
 
 def load_model(model_name):
     if not model_name in models:
@@ -90,8 +91,9 @@ def udpipe(input, model_name, outputfile=None, batch_size=256, verbose=False):
         start = time()
         processed = pipeline.process(text, error)
         duration = time() - start
+        remaining = int(duration*(len(batches)-i-1))
         print_to_log("Done (%.3fs, %.0f tokens/s)" %
-              (duration, num_tokens / duration if duration else 0))
+              (duration, num_tokens / duration if duration else 0)+ f'  predicted remaining: {remaining//3600}:{(remaining%3600) // 60}:{remaining%60}' )
 
         if verbose:
             print_to_log(processed)

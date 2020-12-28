@@ -3,21 +3,21 @@ from os.path import splitext, exists, join
 from os import mkdir
 import pickle
 from sys import argv
-from xml_parsing import xml_to_prl, prl_to_pickle_and_m2, prl_to_corpus, get_errors
+from xml_parsing import xml_to_prl, prl_to_pickle_and_m2, prl_to_corpus, get_errors, print_to_log
 from ufal_stuff.udpipe import udpipe
 from ufal_stuff.GEC_UD_divergences_m2 import run_gec
 import datetime
 # from ufal_stuff.preprocessing import create_corrected_sentences
 # from ufal_stuff.preprocessing import preprocess_file
 
-
-def print_to_log(*text):
-    with open('pipeline_log', 'a') as f:
-        for t in text:
-            f.write("".join(str(datetime.datetime.now()).split('.')[:-1])+' - ')
-            f.write(str(t))
-            f.write('\n')
-    print(text)
+#
+# def print_to_log(*text):
+#     with open('pipeline_log', 'a') as f:
+#         for t in text:
+#             f.write("".join(str(datetime.datetime.now()).split('.')[:-1])+' - ')
+#             f.write(str(t))
+#             f.write('\n')
+#     print(text)
 
 def pipeline(xml_path):
     """

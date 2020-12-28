@@ -8,9 +8,14 @@ from time import time
 import datetime
 QUOT_ENCODING = '&quot;'
 
+LOG_PATH = 'pipeline_log'
 
-def print_to_log(*text):
-    with open('pipeline_log', 'a') as f:
+
+def print_to_log(*text, new_path=None):
+    if new_path:
+        global LOG_PATH
+        LOG_PATH = new_path
+    with open(LOG_PATH, 'a') as f:
         for t in text:
             f.write("".join(str(datetime.datetime.now()).split('.')[:-1])+' - ')
             f.write(str(t))
@@ -23,9 +28,9 @@ def find_all(s, ch):
 
 
 def xml_to_prl(xml_path, out_path=None, metadata=False):
-    print_to_log('Parsing XML:')
     if not out_path:
         out_path = f'{splitext(xml_path)[0]}.prl'
+    print_to_log('Parsing XML:', new_path=f'{splitext(out_path)[0]}.log')
 
     with open(xml_path, "r") as f_read:
         content = f_read.readlines()
@@ -119,6 +124,7 @@ def prl_to_pickle_and_m2(prl_path, pkl_path=None, error_indices=None):
                 if (current_index) * 100 >= current_per * total:
                     elapsed = int(time() - start_time)
                     remaining = (elapsed*100//current_per if current_per else 0) - elapsed
+                    remaining = ((100 -current_per)//5 )* int(time() - last_time)
                     d = remaining // (24 * 3600)
                     h = (remaining  % (24 * 3600)) // 3600
                     m = remaining % 3600 // 60
