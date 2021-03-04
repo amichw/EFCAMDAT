@@ -79,3 +79,20 @@ if __name__ == '__main__':
         df = pickle.load(open(pkl, 'rb'))
         df = df.drop(columns=['orig'])
         print_to_log(df.head())
+
+
+def linux():
+    # for adding all DFs to a single df.
+    import pandas as pd
+    import pickle
+    pkl = 'xmls/_1_EF201403_selection1343/_1_EF201403_selection1343.pkl'
+    df = pickle.load(open(pkl, 'rb'))
+    pkls = ['xmls/_2_3_EF201402_selection1343/_2_3_EF201403_selection1342.pkl'
+        , 'xmls/_4-6_EF201402_selection1345/_4-6_EF201403_selection1345.pkl'
+        , 'xmls/_7_EF201402_selection1316/_7_EF201403_selection1316.pkl'
+        , 'xmls/_8-16_EF201402_selection1344/_8-16_EF201403_selection1344.pkl']
+    for p in pkls:
+        dft = pickle.load(open(p, 'rb'))
+        df = pd.concat((df, dft))
+    pickle.dump(df, open('total.pkl', 'wb'))
+
