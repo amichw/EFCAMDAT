@@ -66,10 +66,35 @@ def save_heat(heat, lang):
     plt.close()
 
 
-def matrix_2_lang(df, lang1, lang2):
-    x = df.groupby(COL_N_ERROR).count()
-    x.sort_values(by=COL_LANG, inplace=True, ascending=False)
-    # freaks = x.index.tolist()[:n]
+def save_err_profile_by_nationality(df, languages):
+
+    for lang in languages[COL_LANG].to_list():
+        heat = get_heat(df[df[COL_LANG] == lang])
+        print_to_log('got heat', lang)
+        save_heat(heat, lang)
+        print_to_log('saved heat', lang)
+
+    # get values for every language:
+    first = languages[COL_LANG].to_list()[0]
+    all_mats = get_mat_vals(df[df[COL_LANG] == first])
+    for lang in languages[COL_LANG].to_list()[1:]:
+        mat = get_mat_vals(df[df[COL_LANG] == lang])
+        all_mats = all_mats.join(mat.drop(['pre', 'post', 'count', 'err'], axis=1), how='left', rsuffix="_"+lang)
+    # avg of all languages:
+    avg_mat = all_mats.drop(['pre', 'post', 'count', 'err', 'mat'], axis=1).fillna(0).mean(axis=1).reset_index()
+    avg_mat.columns = ['err', 'mat']
+    avg_mat['pre'] = avg_mat['err'].apply(lambda x: x.strip().split('->')[0])
+    avg_mat['post'] = avg_mat['err'].apply(lambda x: x.strip().split('->')[1])
+    heat = avg_mat.pivot(index='pre', columns='post', values='mat').fillna(0)
+    save_heat(heat, ' avg')
+
+    # every language minus the average:
+    for lang in languages[COL_LANG].to_list():
+        mat = get_mat_vals(df[df[COL_LANG] == lang])
+        # mat['mat'] = mat['mat'] - avg_mat['mat']
+        mat['mat'] = mat.subtract(avg_mat.drop(['pre', 'post'], axis=1).set_index('err'))['mat'].dropna(axis=0).fillna(0)
+        heat = mat.pivot(index='pre', columns='post', values='mat').fillna(0)
+        save_heat(heat, lang+" (minus avg)")
 
 
 
@@ -88,39 +113,10 @@ if __name__ == '__main__':
     # print(freq_errors)
     N = 20 # Number of languages to use (N largest in dataset. discard the smaller ones.)
 
-    for lang in freq_langs[COL_LANG].to_list()[:N]:
-        heat = get_heat(df[df[COL_LANG] == lang])
-        print_to_log('got heat', lang)
-        save_heat(heat, lang)
-        print_to_log('saved heat', lang)
-
     total_heat = get_heat(df)
     save_heat(total_heat, 'test tight')
     print_to_log('got total heat')
-    # get values for every language:
-    first = freq_langs[COL_LANG].to_list()[0]
-    all_mats = get_mat_vals(df[df[COL_LANG] == first])
-    for lang in freq_langs[COL_LANG].to_list()[1:N]:
-        mat = get_mat_vals(df[df[COL_LANG] == lang])
-        all_mats = all_mats.join(mat.drop(['pre', 'post', 'count', 'err'], axis=1), how='left', rsuffix="_"+lang)
-    # avg of all languages:
-    avg_mat = all_mats.drop(['pre', 'post', 'count', 'err', 'mat'], axis=1).fillna(0).mean(axis=1).reset_index()
-    avg_mat.columns = ['err', 'mat']
-    avg_mat['pre'] = avg_mat['err'].apply(lambda x: x.strip().split('->')[0])
-    avg_mat['post'] = avg_mat['err'].apply(lambda x: x.strip().split('->')[1])
-    heat = avg_mat.pivot(index='pre', columns='post', values='mat').fillna(0)
-    save_heat(heat, ' avg')
-
-    # every language minus the average:
-    for lang in freq_langs[COL_LANG].to_list()[:N]:
-        mat = get_mat_vals(df[df[COL_LANG] == lang])
-        # mat['mat'] = mat['mat'] - avg_mat['mat']
-        mat['mat'] = mat.subtract(avg_mat.drop(['pre', 'post'], axis=1).set_index('err'))['mat'].dropna(axis=0).fillna(0)
-        heat = mat.pivot(index='pre', columns='post', values='mat').fillna(0)
-        save_heat(heat, lang+" (minus avg)")
-
-        # plt.hist2d(mat['pre'].tolist(), mat['post'].tolist())
-
+    save_err_profile_by_nationality(df, freq_langs[:3])
 
 
 
