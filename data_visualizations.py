@@ -67,17 +67,18 @@ def save_heat(heat, lang):
 
 
 def save_err_profile_by_nationality(df, languages):
-
-    for lang in languages[COL_LANG].to_list():
+    for lang in languages:
         heat = get_heat(df[df[COL_LANG] == lang])
         print_to_log('got heat', lang)
         save_heat(heat, lang)
         print_to_log('saved heat', lang)
 
+
+def save_err_profile_minus_avg_by_nationality(df, languages):
     # get values for every language:
-    first = languages[COL_LANG].to_list()[0]
+    first = languages[0]
     all_mats = get_mat_vals(df[df[COL_LANG] == first])
-    for lang in languages[COL_LANG].to_list()[1:]:
+    for lang in languages[1:]:
         mat = get_mat_vals(df[df[COL_LANG] == lang])
         all_mats = all_mats.join(mat.drop(['pre', 'post', 'count', 'err'], axis=1), how='left', rsuffix="_"+lang)
     # avg of all languages:
@@ -89,13 +90,12 @@ def save_err_profile_by_nationality(df, languages):
     save_heat(heat, ' avg')
 
     # every language minus the average:
-    for lang in languages[COL_LANG].to_list():
+    for lang in languages:
         mat = get_mat_vals(df[df[COL_LANG] == lang])
         # mat['mat'] = mat['mat'] - avg_mat['mat']
         mat['mat'] = mat.subtract(avg_mat.drop(['pre', 'post'], axis=1).set_index('err'))['mat'].dropna(axis=0).fillna(0)
         heat = mat.pivot(index='pre', columns='post', values='mat').fillna(0)
         save_heat(heat, lang+" (minus avg)")
-
 
 
 if __name__ == '__main__':
@@ -111,12 +111,15 @@ if __name__ == '__main__':
     print_to_log('got freq languages')
     # print(freq_langs)
     # print(freq_errors)
-    N = 20 # Number of languages to use (N largest in dataset. discard the smaller ones.)
 
     total_heat = get_heat(df)
     save_heat(total_heat, 'test tight')
     print_to_log('got total heat')
-    save_err_profile_by_nationality(df, freq_langs[:3])
+    N = 3  # Number of languages to use (N largest in dataset. discard the smaller ones.)
+    languages = freq_langs[COL_LANG].to_list()[:N]
+    save_err_profile_by_nationality(df, languages)
+    save_err_profile_minus_avg_by_nationality(df, languages)
+
 
 
 
