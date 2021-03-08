@@ -6,7 +6,7 @@ import numpy as np
 
 COL_N_ERROR = 'new_error_types'
 COL_LANG = 'learner_nationality'
-
+COL_LEVEL = 'level'
 
 def print_to_log(*text, new_path=None):
     LOG_PATH = 'vis_log'
@@ -66,6 +66,24 @@ def save_heat(heat, lang):
     plt.close()
 
 
+def create_save_err_profile(df, lang):
+    heat = get_heat(df)
+    if heat.size == 0:
+        print('empty heatmap!!', lang)
+        return
+    ax = sns.heatmap(heat, annot=True, cmap='Blues', linewidths=0.3, cbar_kws={'shrink': 0.8}, square=False)
+    bottom, top = ax.get_ylim()
+    ax.set_ylim(bottom + 0.5, top - 0.5)
+    plt.title(f'Syntactic relations English - {lang} \n n={len(df)}' )
+    fig = plt.gcf()
+    plt.ylabel('English')
+    plt.xlabel(lang)
+    fig.set_size_inches(22, 12, forward=False)
+    # plt.tight_layout()
+    plt.savefig("graphs/heat_" + lang + ".jpg".replace(' ', '_'), dpi=80)
+    plt.close()
+
+
 def save_err_profile_by_nationality(df, languages):
     for lang in languages:
         heat = get_heat(df[df[COL_LANG] == lang])
@@ -96,6 +114,12 @@ def save_err_profile_minus_avg_by_nationality(df, languages):
         mat['mat'] = mat.subtract(avg_mat.drop(['pre', 'post'], axis=1).set_index('err'))['mat'].dropna(axis=0).fillna(0)
         heat = mat.pivot(index='pre', columns='post', values='mat').fillna(0)
         save_heat(heat, lang+" (minus avg)")
+
+
+def save_err_profile_by_nationality_level(df, languages, levels=None):
+    for lang in languages:
+        for level in levels:
+            create_save_err_profile(df[(df[COL_LANG] == lang) & (df[COL_LEVEL] == level)], f'{lang}_{level}')
 
 
 if __name__ == '__main__':
