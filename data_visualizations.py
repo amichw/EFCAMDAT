@@ -91,7 +91,7 @@ def save_err_profile_minus_avg_by_nationality(df, languages):
         mat = get_mat_vals(df[df[COL_LANG] == lang])
         all_mats = all_mats.join(mat.drop(['pre', 'post', 'count', 'err'], axis=1), how='left', rsuffix="_"+lang)
     # avg of all languages:
-    avg_mat = all_mats.drop(['pre', 'post', 'count', 'err', 'mat'], axis=1).fillna(0).mean(axis=1).reset_index()
+    avg_mat = all_mats.drop(['pre', 'post', 'count', 'err'], axis=1).fillna(0).mean(axis=1).reset_index()
     avg_mat.columns = ['err', 'mat']
     avg_mat['pre'] = avg_mat['err'].apply(lambda x: x.strip().split('->')[0])
     avg_mat['post'] = avg_mat['err'].apply(lambda x: x.strip().split('->')[1])
