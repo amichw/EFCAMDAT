@@ -8,6 +8,7 @@ COL_N_ERROR = 'new_error_types'
 COL_LANG = 'learner_nationality'
 COL_LEVEL = 'level'
 
+
 def print_to_log(*text, new_path=None):
     LOG_PATH = 'vis_log'
 
@@ -45,15 +46,17 @@ def get_mat_vals(df):
     return y
 
 
-def get_heat(df):
+def get_heat(df, count=False):
     mat = get_mat_vals(df)
     print_to_log('got mat val')
-    heat = mat.pivot(index='pre', columns='post', values='mat').fillna(0)
+    values = 'count' if count else 'mat'
+    heat = mat.pivot(index='pre', columns='post', values=values).fillna(0)
     return heat
 
 
 def save_heat(heat, lang):
-    ax = sns.heatmap(heat, annot=True, cmap='Blues', linewidths=0.3, cbar_kws={'shrink': 0.8}, square=False)
+    fmt = '.0f' if heat.values.max() > 1 else '.2g'  # integers or floats
+    ax = sns.heatmap(heat, annot=True, fmt=fmt, cmap='Blues', linewidths=0.3, cbar_kws={'shrink': 0.8}, square=False)
     bottom, top = ax.get_ylim()
     ax.set_ylim(bottom + 0.5, top - 0.5)
     plt.title(" Syntactic relations English - "+lang+"\n")
@@ -66,29 +69,17 @@ def save_heat(heat, lang):
     plt.close()
 
 
-def create_save_err_profile(df, lang):
-    heat = get_heat(df)
+def create_save_err_profile(df, lang, count=False):
+    heat = get_heat(df, count)
     if heat.size == 0:
         print('empty heatmap!!', lang)
         return
-    ax = sns.heatmap(heat, annot=True, cmap='Blues', linewidths=0.3, cbar_kws={'shrink': 0.8}, square=False)
-    bottom, top = ax.get_ylim()
-    ax.set_ylim(bottom + 0.5, top - 0.5)
-    plt.title(f'Syntactic relations English - {lang} \n n={len(df)}' )
-    fig = plt.gcf()
-    plt.ylabel('English')
-    plt.xlabel(lang)
-    fig.set_size_inches(22, 12, forward=False)
-    # plt.tight_layout()
-    plt.savefig("graphs/heat_" + lang + ".jpg".replace(' ', '_'), dpi=80)
-    plt.close()
+    save_heat(heat, lang)
 
 
 def save_err_profile_by_nationality(df, languages):
     for lang in languages:
-        heat = get_heat(df[df[COL_LANG] == lang])
-        print_to_log('got heat', lang)
-        save_heat(heat, lang)
+        create_save_err_profile(df[df[COL_LANG] == lang], lang)
         print_to_log('saved heat', lang)
 
 
