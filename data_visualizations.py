@@ -110,7 +110,37 @@ def save_err_profile_minus_avg_by_nationality(df, languages):
 def save_err_profile_by_nationality_level(df, languages, levels=None):
     for lang in languages:
         for level in levels:
-            create_save_err_profile(df[(df[COL_LANG] == lang) & (df[COL_LEVEL] == level)], f'{lang}_{level}')
+            create_save_err_profile(df[(df[COL_LANG] == lang) & (df[COL_LEVEL] == level)], f'{lang}_{level}', False)
+
+
+def per_level_bar(df, levels):
+        # TODO create multi graph plt, in each a bar plot of all levels for that error. manually.
+        first = levels[0]
+        all_mats = get_mat_vals(df[df[COL_LEVEL] == first])
+        # all_mats.columns = [*all_mats.columns[:-1], all_mats.columns[-1] + '_' + first]
+        for level in levels[1:]:
+            mat = get_mat_vals(df[df[COL_LEVEL] == level])
+            all_mats = all_mats.join(mat.drop(['pre', 'post', 'count', 'err'], axis=1), how='left', rsuffix="_" + level)
+        all_mats = all_mats.drop(['count'], axis=1).fillna(0)
+        N = len( all_mats['pre'].unique())
+        fig, axes = plt.subplots(ncols=N, nrows=N,figsize=(30, 20) )
+        fig.suptitle('matrix by level\n',
+                     fontsize=14, fontweight='bold')
+        for i, ax in enumerate(axes.flatten()):
+            ax.bar(x=all_mats.columns[3:], height=all_mats.iloc[i][all_mats.columns[3:]])
+            ax.set_ylim([0,1.0])
+            # ax.set_xticks([], [])
+            # ax.set_yticks([], [])
+        for ax, col in zip(axes[0], all_mats['pre'].unique()):
+            ax.set_title(col)
+        for ax, row in zip(axes[:, 0], all_mats['pre'].unique()):
+            ax.set_ylabel(row, rotation=90, fontsize=16, size='large')
+        for i, ax in enumerate(axes.flatten()):
+            ax.set_xticks([], [])
+            ax.set_yticks([], [])
+        fig.set_size_inches(22, 12, forward=False)
+        # plt.tight_layout()
+        plt.savefig("graphs/by_level.png", dpi=80)
 
 
 if __name__ == '__main__':
@@ -124,6 +154,10 @@ if __name__ == '__main__':
     print_to_log('got freq errors')
     freq_langs = get_freq(df, COL_LANG)
     print_to_log('got freq languages')
+    freq_levels = get_freq(df, COL_LEVEL)
+    # levels = freq_levels[COL_LEVEL].to_list()[:-2]
+    levels = freq_levels[COL_LEVEL].to_list()[:6]
+    freq_err = freq_errors[COL_N_ERROR].to_list()[:20]
     # print(freq_langs)
     # print(freq_errors)
 
