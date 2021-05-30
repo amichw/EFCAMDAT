@@ -114,33 +114,40 @@ def save_err_profile_by_nationality_level(df, languages, levels=None):
 
 
 def per_level_bar(df, levels):
-        # TODO create multi graph plt, in each a bar plot of all levels for that error. manually.
-        first = levels[0]
-        all_mats = get_mat_vals(df[df[COL_LEVEL] == first])
-        # all_mats.columns = [*all_mats.columns[:-1], all_mats.columns[-1] + '_' + first]
-        for level in levels[1:]:
-            mat = get_mat_vals(df[df[COL_LEVEL] == level])
-            all_mats = all_mats.join(mat.drop(['pre', 'post', 'count', 'err'], axis=1), how='left', rsuffix="_" + level)
-        all_mats = all_mats.drop(['count'], axis=1).fillna(0)
-        N = len( all_mats['pre'].unique())
-        fig, axes = plt.subplots(ncols=N, nrows=N,figsize=(30, 20) )
-        fig.suptitle('matrix by level\n',
-                     fontsize=14, fontweight='bold')
-        for i, ax in enumerate(axes.flatten()):
-            ax.bar(x=all_mats.columns[3:], height=all_mats.iloc[i][all_mats.columns[3:]])
-            ax.set_ylim([0,1.0])
-            # ax.set_xticks([], [])
-            # ax.set_yticks([], [])
-        for ax, col in zip(axes[0], all_mats['pre'].unique()):
-            ax.set_title(col)
-        for ax, row in zip(axes[:, 0], all_mats['pre'].unique()):
-            ax.set_ylabel(row, rotation=90, fontsize=16, size='large')
-        for i, ax in enumerate(axes.flatten()):
-            ax.set_xticks([], [])
-            ax.set_yticks([], [])
-        fig.set_size_inches(22, 12, forward=False)
-        # plt.tight_layout()
-        plt.savefig("graphs/by_level.png", dpi=80)
+    """
+    Creates a matrix where in each cell is a bar plot comparing every level for that score.
+    :param df:
+    :param levels: Which levels to include in graph (list of numbers. ) order is important
+    :return:
+    """
+    # TODO: create multi graph plt, in each a bar plot of all levels for that error. manually.
+    levels.sort()
+    first = levels[0]
+    all_mats = get_mat_vals(df[df[COL_LEVEL] == first])
+    # all_mats.columns = [*all_mats.columns[:-1], all_mats.columns[-1] + '_' + first]
+    for level in levels[1:]:
+        mat = get_mat_vals(df[df[COL_LEVEL] == level])
+        all_mats = all_mats.join(mat.drop(['pre', 'post', 'count', 'err'], axis=1), how='left', rsuffix="_" + level)
+    all_mats = all_mats.drop(['count'], axis=1).fillna(0)
+    N = len( all_mats['pre'].unique())
+    fig, axes = plt.subplots(ncols=N, nrows=N,figsize=(30, 20) )
+    fig.suptitle('matrix by level\n Proficiency: left to right.',
+                 fontsize=14, fontweight='bold')
+    for i, ax in enumerate(axes.flatten()):
+        ax.bar(x=all_mats.columns[3:], height=all_mats.iloc[i][all_mats.columns[3:]])
+        ax.set_ylim([0,1.0])
+        # ax.set_xticks([], [])
+        # ax.set_yticks([], [])
+    for ax, col in zip(axes[0], all_mats['pre'].unique()):
+        ax.set_title(col)
+    for ax, row in zip(axes[:, 0], all_mats['pre'].unique()):
+        ax.set_ylabel(row, rotation=90, fontsize=16, size='large')
+    for i, ax in enumerate(axes.flatten()):
+        ax.set_xticks([], [])
+        ax.set_yticks([], [])
+    fig.set_size_inches(25, 16, forward=False)
+    # plt.tight_layout()
+    plt.savefig("graphs/by_level.png", dpi=80)
 
 
 if __name__ == '__main__':
