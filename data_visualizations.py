@@ -3,6 +3,7 @@ import pickle
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+from sklearn.metrics import mutual_info_score as mmi
 
 COL_N_ERROR = 'new_error_types'
 COL_LANG = 'learner_nationality'
@@ -22,6 +23,34 @@ def print_to_log(*text, new_path=None):
             f.write(str(t))
             f.write('\n')
     print(text)
+
+
+def compare_dimitry(df, dimitry_path, lang):
+    dm = pd.read_csv(dimitry_path)
+    dm.index = dm.en
+    dm.drop(labels=['en'], inplace=True, axis=1)
+    dm.drop(labels=['INTJ'], inplace=True)  # 16X16
+
+    ours = get_heat(df[df[COL_LANG] == lang])
+    # TODO: what needs to be dropped for each language.
+    ours.drop(labels=['PUNCT'], inplace=True, axis=1)
+    ours.drop(labels=['PUNCT'], inplace=True)
+    ours.drop(labels=['INTJ'], inplace=True, axis=1)
+    ours.drop(labels=['INTJ'], inplace=True)
+    if lang == 'fr':
+        dm.drop(labels=['PART'], inplace=True)  # 16X16
+        ours.drop(labels=['PART'], inplace=True, axis=1)
+        ours.drop(labels=['PART'], inplace=True)
+    if lang == 'jp':
+        dm.drop(labels=['PUNCT'], inplace=True)
+        dm.drop(labels=['X'], inplace=True)
+        ours.drop(labels=['X'], inplace=True)
+        ours.drop(labels=['X'], inplace=True, axis=1)
+    if lang == 'cn':
+        dm.drop(labels=['SYM'], inplace=True)
+    # kl(dm.values.reshape((-1,)), ours.values.reshape((-1,)))
+    return mmi(dm.values.reshape((-1,)), ours.values.reshape((-1,))) # or avg score for every line
+
 
 
 def get_freq(df, col):
@@ -176,6 +205,15 @@ if __name__ == '__main__':
     save_err_profile_by_nationality(df, languages)
     save_err_profile_minus_avg_by_nationality(df, languages)
 
+    per_level_bar(df, levels) # the real one..!
+    dimitry_path = 'external_data/en-zh_pos_cm_percent.csv'
+    lang = 'cn'
+    r = compare_dimitry(df, 'external_data/en-ru_pos_cm_percent.csv', 'ru')
+    f = compare_dimitry(df, 'external_data/en-fr_pos_cm_percent.csv', 'fr')
+    j = compare_dimitry(df, 'external_data/en-jp_pos_cm_percent.csv', 'jp')
+    c = compare_dimitry(df, 'external_data/en-zh_pos_cm_percent.csv', 'cn')
+    # compare_dimitry(df, 'external_data/en-ko_pos_cm_percent.csv', 'ko')
+    print(r,f,j,c)
 
 
 
