@@ -91,7 +91,7 @@ def xml_to_prl(xml_path, out_path=None, metadata=False):
     return out_path
 
 
-def prl_to_pickle_and_m2(prl_path, pkl_path=None, error_indices=None):
+def prl_to_pickle_and_m2(prl_path, pkl_path=None, error_indices=None, corpus_native=False):
     if not pkl_path:
         pkl_path = f'{splitext(prl_path)[0]}.pkl'
     temp_pkl = pkl_path + 'temp'
@@ -99,6 +99,8 @@ def prl_to_pickle_and_m2(prl_path, pkl_path=None, error_indices=None):
     columns = ['text_index', 'orig', 'cor_type', 'edit.o_start', 'edit.o_end', 'o_str', 'c_str', 'id', 'level', 'unit', 'learner_id',
                'learner_nationality', 'grade',
                'topic_id', 'date']
+    if corpus_native:
+        columns = ['text_index', 'orig', 'cor_type', 'edit.o_start', 'edit.o_end', 'o_str', 'c_str', 'd', 'f', 'g', 'l', 'a', 'sent_id']
     data = pd.DataFrame(columns=columns)
     pickle.dump(data, open(temp_pkl, 'wb'))
     index = 0
@@ -193,3 +195,34 @@ def get_errors(m2_path):
                 errors.append(line.split('|||')[1])
     return errors
 
+
+def corpus_native_to_prl(cPath, out_path=None, metadata=False):
+    if not out_path:
+        out_path = f'{splitext(cPath)[0]}_c.prl'
+    print_to_log('Parsing corpus:', new_path=f'{splitext(out_path)[0]}.log')
+
+    with open(cPath, "r", encoding='utf-8') as f_read:
+        content = f_read.readlines()
+
+    with open(out_path, 'w') as f_write:
+        # content = "".join(content)
+        current_index = 0
+        meta = {'d': '', 'f': '', 'g': '', 'l': '', 'a': '', 'sent_id': ''}
+
+        for line in content:
+            if len(line) <= 0:
+                continue
+            if line[0] == '#':
+                meta[line[2]] =  line[6:].strip() if len(line) > 6 else ''
+            elif line[0] == 'O':
+                orig = line[2:].strip()
+            elif line[0] == 'C':
+                cor = line[2:].strip()
+                current_index += 1
+                if metadata:
+                    f_write.write("M|||{}|||{}|||{}|||{}|||{}|||{}\n".format(meta['d'], meta['f'], meta['g'], meta['l'],
+                                                                             meta['a'], meta['sent_id']))
+                f_write.write(f"O  {orig} \n")
+                f_write.write(f"C  {cor} \n\n")
+    print(f"wrote {current_index} sentences to prl {out_path}.")
+    return out_path
