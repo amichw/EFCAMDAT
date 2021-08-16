@@ -4,10 +4,92 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from sklearn.metrics import mutual_info_score as mmi
+from sklearn.metrics import normalized_mutual_info_score as nmi
+from sklearn.metrics import adjusted_mutual_info_score as ami
+import lang2vec.lang2vec as l2v
+
 
 COL_N_ERROR = 'new_error_types'
 COL_LANG = 'learner_nationality'
 COL_LEVEL = 'level'
+
+country_to_lang = {'br':'pt', 'cn':'zh', 'mx':'es', 'ru':'ru', 'de':'de', 'sa':'ar', 'it':'it', 'fr':'fr', 'us':'en', 'jp':'ja', 'tr':'tr'}
+
+
+def kl(a, b):
+    """
+    Computes KL-divergence
+    :param a:
+    :param b:
+    :return:
+    """
+    a = np.asarray(a, dtype=np.float)
+    b = np.asarray(b, dtype=np.float)
+    a = 1.0 * a / np.sum(a, axis=0) # make prob. dist.
+    b = 1.0 * b / np.sum(b, axis=0)
+
+    return np.sum(np.where(np.logical_and(a != 0, b != 0), a * np.log(a / b), 0))
+
+
+def mmi_score(l1, l2):
+    #  1)get heat map 2. mmi for every line. 3. avg all lines for final mmi.
+    mmi_per_row = []
+    for i in range(l1.shape[0]):
+        mmi_per_row.append(mmi(l1.iloc[i], l2.iloc[i]))
+    return np.average(mmi_per_row)
+
+
+def distFromLang(all_heats, langs, target_lang):
+    """
+    measures the distance of all langs from a specific lang
+    :return: DF of distances
+    """
+    distances = dict()
+    distDF = pd.DataFrame()
+    dfLangs = []
+    dfDist = []
+    # y.columns = ['count']
+    target = all_heats[target_lang]
+    for lang in langs:
+        if lang in country_to_lang:
+            mat = all_heats[lang]
+            dfLangs.append(lang)
+            dfDist.append(mmi_score(mat, target))
+            distances[f'{lang}_{target_lang}'] = mmi_score(mat, target)
+    distDF['from'] = dfLangs
+    distDF[target_lang] = dfDist
+    return distDF
+
+def allDistFromLang(all_heats, langs):
+    """
+    measures the distance of all langs from all langs.
+        Saves result.
+    """
+    allDist = None
+    for lang in langs:
+        if lang in country_to_lang:
+            if allDist is None:
+                allDist = distFromLang(all_heats, langs, lang)
+            else:
+                allDist[lang] = distFromLang(all_heats, langs, lang)[lang]
+    allDist = allDist.set_index('from')
+    title = 'Distances between languages, by error profiles. \n computed by mmi.'
+    saveHeatMap(allDist, title, fileName="graphs/distances_all.png")
+
+
+def saveHeatMap(mat, title='', x='', y='', fileName='temp.png'):
+    fmt = '.4g'  # floats
+    ax = sns.heatmap(mat, annot=True, fmt=fmt, cmap='Blues', linewidths=0.3,
+                     cbar_kws={'shrink': 0.8}, square=False)
+    bottom, top = ax.get_ylim()
+    ax.set_ylim(bottom + 0.5, top - 0.5)
+    plt.title(title)
+    fig = plt.gcf()
+    plt.ylabel(y)
+    plt.xlabel(x)
+    fig.set_size_inches(22, 12, forward=False)
+    plt.savefig(fileName, dpi=80)
+    plt.close()
 
 
 def print_to_log(*text, new_path=None):
@@ -52,7 +134,6 @@ def compare_dimitry(df, dimitry_path, lang):
     return mmi(dm.values.reshape((-1,)), ours.values.reshape((-1,))) # or avg score for every line
 
 
-
 def get_freq(df, col):
     val = df
     val = val.groupby((col)).count()
@@ -94,7 +175,7 @@ def save_heat(heat, lang):
     plt.xlabel(lang)
     fig.set_size_inches(22, 12, forward=False)
     # plt.tight_layout()
-    plt.savefig("graphs/heat_"+ lang +".png".replace(' ', '_'), dpi=120)
+    plt.savefig("graphs/heat_" + lang + ".png".replace(' ', '_'), dpi=80)
     plt.close()
 
 
@@ -192,7 +273,8 @@ if __name__ == '__main__':
     print_to_log('got freq languages')
     freq_levels = get_freq(df, COL_LEVEL)
     # levels = freq_levels[COL_LEVEL].to_list()[:-2]
-    levels = freq_levels[COL_LEVEL].to_list()[:6]
+    levels = freq_levels[COL_LEVEL].to_list()[:13]
+    langs = freq_langs[COL_LANG].to_list()[:10]
     freq_err = freq_errors[COL_N_ERROR].to_list()[:20]
     # print(freq_langs)
     # print(freq_errors)
@@ -215,6 +297,11 @@ if __name__ == '__main__':
     # compare_dimitry(df, 'external_data/en-ko_pos_cm_percent.csv', 'ko')
     print(r,f,j,c)
 
+    all_heats = dict()
+    for lang in langs:
+        if lang in country_to_lang:
+            all_heats[lang] = get_heat(df[df[COL_LANG] == lang])
 
+    allDistFromLang(all_heats, langs)
 
 
