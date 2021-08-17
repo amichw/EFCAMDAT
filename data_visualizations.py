@@ -6,6 +6,8 @@ import numpy as np
 from sklearn.metrics import mutual_info_score as mmi
 from sklearn.metrics import normalized_mutual_info_score as nmi
 from sklearn.metrics import adjusted_mutual_info_score as ami
+from sklearn.metrics import v_measure_score as vms
+from scipy.stats import pearsonr as prs
 import lang2vec.lang2vec as l2v
 
 
@@ -13,7 +15,7 @@ COL_N_ERROR = 'new_error_types'
 COL_LANG = 'learner_nationality'
 COL_LEVEL = 'level'
 
-country_to_lang = {'br':'pt', 'cn':'zh', 'mx':'es', 'ru':'ru', 'de':'de', 'sa':'ar', 'it':'it', 'fr':'fr', 'us':'en', 'jp':'ja', 'tr':'tr'}
+country_to_lang = {'br':'pt', 'cn':'zh', 'mx':'es', 'ru':'ru', 'de':'de', 'it':'it', 'fr':'fr', 'jp':'ja', 'tr':'tr'}
 
 
 def kl(a, b):
@@ -90,6 +92,30 @@ def saveHeatMap(mat, title='', x='', y='', fileName='temp.png'):
     fig.set_size_inches(22, 12, forward=False)
     plt.savefig(fileName, dpi=80)
     plt.close()
+
+
+def allDistLang2vec(langs):
+    """
+    measures the distance of all langs from all langs, from Lang2Vec vector.
+        Saves result.
+    """
+    l2vs = dict()
+    distDFL2v = pd.DataFrame()
+    dfLangs = []
+    for lang in langs:
+        if lang in country_to_lang:
+            code = country_to_lang[lang]
+            l2vs[lang] = l2v.get_features(code, 'learned')[code]
+    distDFL2v['from'] = l2vs.keys()
+    for lang1 in l2vs:
+        dfDist = []
+        for lang2 in l2vs:
+            dfLangs.append(lang2)
+            dfDist.append(prs(l2vs[lang1], l2vs[lang2])[0])
+        distDFL2v[lang1] = dfDist
+    distDFL2v = distDFL2v.set_index('from')
+    title = 'Distances between languages, by Lang2Vec. \n computed by pearson correlation.'
+    saveHeatMap(distDFL2v, title, fileName="graphs/distances_prs_l2v.png")
 
 
 def print_to_log(*text, new_path=None):
