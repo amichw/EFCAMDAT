@@ -7,7 +7,8 @@ from sklearn.metrics import mutual_info_score as mmi
 from sklearn.metrics import normalized_mutual_info_score as nmi
 from sklearn.metrics import adjusted_mutual_info_score as ami
 from sklearn.metrics import v_measure_score as vms
-from scipy.stats import pearsonr as prs
+from sklearn.metrics.pairwise import cosine_distances, cosine_similarity, pairwise_distances
+from scipy.stats import pearsonr as prs, spearmanr
 import lang2vec.lang2vec as l2v
 
 
@@ -41,6 +42,14 @@ def mmi_score(l1, l2):
     return np.average(mmi_per_row)
 
 
+def cosine_sim_per_row(l1, l2):
+    #  1)get heat map 2. mmi for every line. 3. avg all lines for final mmi.
+    cs_per_row = []
+    for i in range(l1.shape[0]):
+        cs_per_row.append(cosine_similarity(np.reshape(l1.iloc[i].array, (1, -1)), np.reshape(l2.iloc[i].array, (1, -1)))[0][0])
+    return np.average(cs_per_row)
+
+
 def distFromLang(all_heats, langs, target_lang):
     """
     measures the distance of all langs from a specific lang
@@ -56,11 +65,12 @@ def distFromLang(all_heats, langs, target_lang):
         if lang in country_to_lang:
             mat = all_heats[lang]
             dfLangs.append(lang)
-            dfDist.append(mmi_score(mat, target))
-            distances[f'{lang}_{target_lang}'] = mmi_score(mat, target)
+            dfDist.append(cosine_sim_per_row(mat, target))
+            distances[f'{lang}_{target_lang}'] = cosine_sim_per_row(mat, target)
     distDF['from'] = dfLangs
     distDF[target_lang] = dfDist
     return distDF
+
 
 def allDistFromLang(all_heats, langs):
     """
@@ -75,8 +85,9 @@ def allDistFromLang(all_heats, langs):
             else:
                 allDist[lang] = distFromLang(all_heats, langs, lang)[lang]
     allDist = allDist.set_index('from')
-    title = 'Distances between languages, by error profiles. \n computed by mmi.'
-    saveHeatMap(allDist, title, fileName="graphs/distances_all.png")
+    title = 'Distances between languages, by error profiles. \n computed by cosine similarity.'
+    saveHeatMap(allDist, title, fileName="graphs/distances_prs.png")
+    return allDist
 
 
 def saveHeatMap(mat, title='', x='', y='', fileName='temp.png'):
@@ -96,26 +107,28 @@ def saveHeatMap(mat, title='', x='', y='', fileName='temp.png'):
 
 def allDistLang2vec(langs):
     """
+    cosine similarity matrix for lang2vec.
     measures the distance of all langs from all langs, from Lang2Vec vector.
         Saves result.
     """
     l2vs = dict()
-    distDFL2v = pd.DataFrame()
+    distL2vCS = pd.DataFrame()
     dfLangs = []
     for lang in langs:
         if lang in country_to_lang:
             code = country_to_lang[lang]
             l2vs[lang] = l2v.get_features(code, 'learned')[code]
-    distDFL2v['from'] = l2vs.keys()
+    distL2vCS['from'] = l2vs.keys()
     for lang1 in l2vs:
         dfDist = []
         for lang2 in l2vs:
             dfLangs.append(lang2)
-            dfDist.append(prs(l2vs[lang1], l2vs[lang2])[0])
-        distDFL2v[lang1] = dfDist
-    distDFL2v = distDFL2v.set_index('from')
-    title = 'Distances between languages, by Lang2Vec. \n computed by pearson correlation.'
-    saveHeatMap(distDFL2v, title, fileName="graphs/distances_prs_l2v.png")
+            dfDist.append(cosine_similarity(np.reshape(l2vs[lang1], (1, -1)), np.reshape(l2vs[lang2], (1, -1)))[0][0])
+        distL2vCS[lang1] = dfDist
+    distL2vCS = distL2vCS.set_index('from')
+    title = 'Distances between languages, by Lang2Vec. \n computed by cosine similarity.'
+    saveHeatMap(distL2vCS, title, fileName="graphs/distances_prs_l2v.png")
+    return distL2vCS
 
 
 def print_to_log(*text, new_path=None):
