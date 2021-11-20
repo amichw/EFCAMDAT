@@ -19,6 +19,25 @@ COL_LEVEL = 'level'
 country_to_lang = {'br':'pt', 'cn':'zh', 'mx':'es', 'ru':'ru', 'de':'de', 'it':'it', 'fr':'fr', 'jp':'ja', 'tr':'tr'}
 
 
+def rank_correlation(errors_dist, lang2vec_dist, langs):
+    corrs, pvs, lang_labels = [], [], []
+    for lang in langs:
+        if lang in country_to_lang:
+            corr, pv = spearmanr(errors_dist[lang], lang2vec_dist[lang])
+            corrs.append(corr)
+            pvs.append(pv)
+            lang_labels.append(lang)
+    plt.bar(lang_labels, corrs)
+    plt.title('spearman rank correlation of distances of language from other '
+              'languages \n by error-profile vs. lang2vec profile')
+    pv_str = [f'p value=\n{pv}' for pv in pvs]
+    for i in range(len(corrs)):
+        plt.annotate(pv_str[i], (i, 0.2), ha='center')
+    plt.gcf().set_size_inches(25, 16, forward=False)
+    plt.savefig("graphs/rank_correlation.png", dpi=80)
+
+
+
 def kl(a, b):
     """
     Computes KL-divergence
@@ -341,6 +360,9 @@ if __name__ == '__main__':
         if lang in country_to_lang:
             all_heats[lang] = get_heat(df[df[COL_LANG] == lang])
 
-    allDistFromLang(all_heats, langs)
+    errors_dist = allDistFromLang(all_heats, langs)
+    lang2vec_dist = allDistLang2vec(langs)  # objective no. 1 . complete!
+    # TODO: rank spearman (objective 2). one number? what is the output??
+    rank_correlation(errors_dist, lang2vec_dist, langs)
 
 
