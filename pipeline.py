@@ -5,7 +5,7 @@ import pickle
 from sys import argv
 from xml_parsing import xml_to_prl, prl_to_pickle_and_m2, prl_to_corpus, get_errors, print_to_log, corpus_native_to_prl
 from ufal_stuff.udpipe import udpipe
-from ufal_stuff.GEC_UD_divergences_m2 import run_gec
+from ufal_stuff.GEC_UD_divergences_m2 import *
 
 
 def pipeline(xml_path):
@@ -153,3 +153,28 @@ def linux():
         df = pd.concat((df, dft))
     pickle.dump(df, open('total.pkl', 'wb'))
 
+
+def run_gec(conllu_path, conllu_path_corrected, m2_path, matrices=False):
+    esl_tokenized = get_tokenized(conllu_path)
+    cesl_tokenized = get_tokenized(conllu_path_corrected)
+    comparison = get_annotation_from_m2(m2_path)
+    alignments = []  # will be a list of dictionaries
+    invalid_indices = get_alignments(alignments, esl_tokenized, cesl_tokenized, comparison)
+    invalid_indices = list(set(invalid_indices))
+    invalid_indices.sort()
+    print('error indices: ', invalid_indices)
+    src = parse_conllu(conllu_path)
+    corr = parse_conllu(conllu_path_corrected)
+    assert len(src) == len(corr) == len(alignments), "len src: " + str(len(src)) + " len of corr: " + str(len(corr)) + " len all: " + str(len(alignments))
+    confusion_dict_paths = {}
+    confusion_dict_pos = {}
+    print('starting new_m2')
+    new_m2_path = syntactic_m2(src, corr, m2_path, None, invalid_indices)
+    remove_invalid(invalid_indices, src, corr, alignments)
+    if matrices:
+        print('starting confusion matrix.')
+        get_confusion_matrix(src, corr, alignments,
+                             confusion_dict_pos, confusion_dict_paths)
+        print('starting extracting matrices .')
+        extract_matrices(confusion_dict_paths, confusion_dict_pos, conllu_path)
+    return new_m2_path, invalid_indices
