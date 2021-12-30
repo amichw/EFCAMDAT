@@ -290,10 +290,39 @@ def save_err_profile_minus_avg_by_nationality(df, languages):
         save_heat(heat, lang+" (minus avg)")
 
 
+def save_err_profile_minus_avg_by_level(df, levels):
+    # get values for every language:
+    first = levels[0]
+    all_mats = get_mat_vals(df[df[COL_LEVEL] == first])
+    for level in levels[1:]:
+        mat = get_mat_vals(df[df[COL_LEVEL] == level])
+        all_mats = all_mats.join(mat.drop(['pre', 'post', 'count', 'err'], axis=1), how='left', rsuffix="_"+level)
+    # avg of all levels:
+    avg_mat = all_mats.drop(['pre', 'post', 'count', 'err'], axis=1).fillna(0).mean(axis=1).reset_index()
+    avg_mat.columns = ['err', 'mat']
+    avg_mat['pre'] = avg_mat['err'].apply(lambda x: x.strip().split('->')[0])
+    avg_mat['post'] = avg_mat['err'].apply(lambda x: x.strip().split('->')[1])
+    heat = avg_mat.pivot(index='pre', columns='post', values='mat').fillna(0)
+    save_heat(heat, ' avg by level')
+
+    # every level minus the average:
+    for level in levels:
+        mat = get_mat_vals(df[df[COL_LEVEL] == level])
+        mat['mat'] = mat.subtract(avg_mat.drop(['pre', 'post'], axis=1).set_index('err'))['mat'].dropna(axis=0).fillna(0)
+        heat = mat.pivot(index='pre', columns='post', values='mat').fillna(0)
+        save_heat(heat, f'level {level} (minus avg)')
+
+
 def save_err_profile_by_nationality_level(df, languages, levels=None):
     for lang in languages:
         for level in levels:
-            create_save_err_profile(df[(df[COL_LANG] == lang) & (df[COL_LEVEL] == level)], f'{lang}_{level}', False)
+            create_save_err_profile(df[(df[COL_LANG] == lang) & (df[COL_LEVEL] == level)], f'Nationality: {lang}: level: {level}', False)
+
+
+def save_err_profile_by_level(df, levels=None):
+    for level in levels:
+        rows = df[(df[COL_LEVEL] == level)].shape[0]
+        create_save_err_profile(df[(df[COL_LEVEL] == level)], f'level: {level}. n={rows}', False)
 
 
 def per_level_bar(df, levels):
