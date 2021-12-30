@@ -331,6 +331,77 @@ def per_level_bar(df, levels):
     fig.set_size_inches(25, 16, forward=False)
     # plt.tight_layout()
     plt.savefig("graphs/by_level.png", dpi=80)
+    plt.close()
+
+
+def kl_score(df, l1, l2):
+    # TODO: 1)get heat map 2. kl for every line. 3. avg all lines for final kl.
+    # TODO: Then compare to lang2vec dist/kl of same 2 langs
+    kl_per_row = []
+    for i in range(l1.shape[0]):
+        kl_per_row.append(kl(l1.iloc[i], l2.iloc[i]))
+    return np.average(kl_per_row)
+
+
+def dataset_statistics(df, n=20):
+    freq_errors = get_freq(df, COL_N_ERROR)
+    print_to_log('got freq errors')
+    freq_langs = get_freq(df, COL_LANG)
+    print_to_log('got freq languages')
+    freq_levels = get_freq(df, COL_LEVEL)
+
+    plt.bar(freq_errors[:n]['new_error_types'], freq_errors[:n]['percent'])
+    plt.xticks(rotation=45)
+    save_close('error_stats', 'error type distribution in dataset', 'error type', 'percent')
+
+    plt.bar(freq_langs[:n][COL_LANG], freq_langs[:n]['percent'])
+    plt.xticks(rotation=45)
+    save_close('lang_stats', 'Nationality distribution in dataset', ' Nationality', 'percent')
+    plt.bar(freq_langs[:n][COL_LANG], freq_langs[:n]['count'])
+    plt.xticks(rotation=45)
+    save_close('lang_count_stats', 'Nationality total numbers in dataset', ' Nationality', 'count')
+    plt.bar(freq_langs[:n][COL_LANG], freq_langs[:n]['count'])
+    plt.xticks(rotation=45)
+    plt.yscale('log')
+    save_close('lang_count_stats_log', 'Nationality total numbers in dataset', ' Nationality', 'count (log scale)')
+
+    plt.bar(freq_levels['level'], freq_levels['percent'])
+    plt.xticks(rotation=45)
+    save_close('level_stats', 'proficiency level distribution in dataset', 'level', 'percent')
+
+    return freq_errors, freq_langs, freq_levels
+
+
+def save_close(fn, title=None, xlabel=None, ylabel=None, dpi=80):
+    if title:
+        plt.title(title)
+    if xlabel:
+        plt.xlabel(xlabel)
+    if ylabel:
+        plt.ylabel(ylabel)
+    fig = plt.gcf()
+    fig.set_size_inches(22, 12, forward=False)
+    plt.savefig(f'graphs/{fn}.png'.replace(' ', '_').replace(':', ''), dpi=80)
+    plt.close()
+
+
+def vis_whole_ds(df):
+    lang = 'whole Dataset'
+    create_save_err_profile(df, lang)
+    create_save_err_profile(df, lang+' count', count=True)
+
+
+def vis_words(df, col=COL_N_ERROR, err='None->DET'):
+    df_det = df[df[col] == err]
+    det_count = df_det.groupby([COL_LANG, 'c_str']).count()['id']
+    # Change: groupby state_office and divide by sum
+    det_percent = det_count.groupby(level=0).apply(lambda x: 100 * x / float(x.sum()))
+    # det_percent[det_percent > 5].reset_index().plot()
+    top5 = det_percent.sort_values().groupby(level=0).tail(5).groupby(COL_LANG).apply(lambda x: x)
+    # top5.reset_index().plot.bar()
+    top5.unstack().plot.bar()
+    save_close(f'top5_{col}_{err.replace("->", "")}', f'Top 5 corrected Words in {err} error-type', ylabel=f'percent of {err} in same language')
+
 
 
 if __name__ == '__main__':
