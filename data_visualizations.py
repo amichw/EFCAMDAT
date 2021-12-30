@@ -165,31 +165,46 @@ def print_to_log(*text, new_path=None):
     print(text)
 
 
-def compare_dimitry(df, dimitry_path, lang):
+def compare_all_dimitry(df):
+    # TODO: make image smaller, so font is bigger.
+    # TODO: in compare_dimitry, give all_heats instead of df. Will cut runtime... (Who cares?..)
+    cds = []
+    for lang in ['ru', 'fr', 'jp', 'cn'] :
+        for d_lang in ['ru', 'fr', 'jp', 'zh'] :
+            # dimitry_path = f'external_data/en-{d_lang}_pos_cm_percent.csv'
+            cds.append(compare_dimitry(df, d_lang, lang))
+    d_compare = pd.DataFrame(np.reshape(cds, (4,4)), index= ['ru', 'fr', 'jp', 'cn'], columns= ['ru', 'fr', 'jp', 'cn'])
+    saveHeatMap(d_compare, 'Cosine-similarity between Nikolaev et al. Pos changes and error profile ', 'Dimitry', 'Error profile',  fileName='graphs/dimitry_compare.png')
+
+
+def compare_dimitry(df, d_lang, lang):
+    """
+    return cosine-similarity between Dimitry matrix and error-profile.
+    """
+    dimitry_path = f'external_data/en-{d_lang}_pos_cm_percent.csv'
     dm = pd.read_csv(dimitry_path)
     dm.index = dm.en
     dm.drop(labels=['en'], inplace=True, axis=1)
     dm.drop(labels=['INTJ'], inplace=True)  # 16X16
 
     ours = get_heat(df[df[COL_LANG] == lang])
-    # TODO: what needs to be dropped for each language.
+    # what needs to be dropped for each language.
     ours.drop(labels=['PUNCT'], inplace=True, axis=1)
     ours.drop(labels=['PUNCT'], inplace=True)
     ours.drop(labels=['INTJ'], inplace=True, axis=1)
     ours.drop(labels=['INTJ'], inplace=True)
-    if lang == 'fr':
+    if d_lang == 'fr':
         dm.drop(labels=['PART'], inplace=True)  # 16X16
         ours.drop(labels=['PART'], inplace=True, axis=1)
         ours.drop(labels=['PART'], inplace=True)
-    if lang == 'jp':
+    if d_lang == 'jp':
         dm.drop(labels=['PUNCT'], inplace=True)
         dm.drop(labels=['X'], inplace=True)
         ours.drop(labels=['X'], inplace=True)
         ours.drop(labels=['X'], inplace=True, axis=1)
-    if lang == 'cn':
+    if d_lang == 'zh':
         dm.drop(labels=['SYM'], inplace=True)
-    # kl(dm.values.reshape((-1,)), ours.values.reshape((-1,)))
-    return mmi(dm.values.reshape((-1,)), ours.values.reshape((-1,))) # or avg score for every line
+    return cosine_sim_per_row(dm, ours)
 
 
 def get_freq(df, col):
