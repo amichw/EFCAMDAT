@@ -10,6 +10,7 @@ Current steps:
 5. creating CoNLL-U files for the original and corrected sentences using [this model][model] with [UDpipe][UDPipe] library.
 6. Convert the m2 and CoNLL-U files to a syntax based (p.o.s.) m2 file using [this library][gec]
 7. Add syntax based correction-types to Dataframe.
+8. Add visualisations and analysis.
 
 
 
